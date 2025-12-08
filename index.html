@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reef Tank Dashboard & Dosing Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #f4f4f9; --card: #ffffff; --primary: #007bff; --text: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
+        h1, h2 { color: #2c3e50; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .card { background: var(--card); padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* Form Styles */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
+        button:hover { background: #0056b3; }
+        button.delete { background: #dc3545; margin-top: 10px; }
+
+        /* Status Indicators */
+        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .status-box { padding: 10px; border-radius: 5px; text-align: center; color: white; font-weight: bold; }
+        .good { background: #28a745; }
+        .warn { background: #ffc107; color: #333; }
+        .bad { background: #dc3545; }
+
+        /* Calculator Output */
+        #calc-results { margin-top: 20px; padding: 15px; background: #e9ecef; border-left: 5px solid #007bff; display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    <h1>🐠 35g Reef Command Center</h1>
+
+    <div class="card" style="margin-bottom: 20px;">
+        <h2>Current Status</h2>
+        <div class="status-grid" id="statusDisplay">
+            <div class="status-box warn">No Data</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>📝 Add New Log</h2>
+            <div class="form-group"><label>Date</label><input type="date" id="date"></div>
+            <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk"></div>
+            <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca"></div>
+            <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg"></div>
+            <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
+            <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
+            <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph"></div>
+            <button onclick="addLog()">Save Entry</button>
+        </div>
+
+        <div class="card">
+            <h2>🧪 Dosing Assistant</h2>
+            <p>Enter your <b>current daily dose</b> to get a recommendation based on your recent trends.</p>
+            <div class="form-group"><label>Current Brightwell Part B (mL)</label><input type="number" id="currAlkDose" placeholder="e.g. 10"></div>
+            <div class="form-group"><label>Current NeoNitro Dose (mL)</label><input type="number" id="currNitroDose" placeholder="e.g. 5"></div>
+            <button onclick="calculateDosing()">Analyze & Adjust</button>
+            <div id="calc-results"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📈 Trends</h2>
+        <canvas id="tankChart"></canvas>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h2>History</h2>
+        <button class="delete" onclick="clearData()" style="width: auto; float: right; padding: 5px 10px;">Clear All Data</button>
+        <table id="historyTable">
+            <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+<script>
+    // --- CONFIGURATION ---
+    const TANK_VOL = 35; // gallons
+
+    // --- APP LOGIC ---
+    let logs = JSON.parse(localStorage.getItem('reefLogs')) || [];
+
+    // Set today's date in input
+    document.getElementById('date').valueAsDate = new Date();
+
+    function saveToStorage() {
+        // Sort by date before saving
+        logs.sort((a, b) => new Date(a.date) - new Date(b.date));
+        localStorage.setItem('reefLogs', JSON.stringify(logs));
+        renderAll();
+    }
+
+    function addLog() {
+        const entry = {
+            date: document.getElementById('date').value,
+            alk: parseFloat(document.getElementById('alk').value),
+            ca: parseFloat(document.getElementById('ca').value),
+            mg: parseFloat(document.getElementById('mg').value),
+            no3: parseFloat(document.getElementById('no3').value),
+            po4: parseFloat(document.getElementById('po4').value),
+            ph: parseFloat(document.getElementById('ph').value)
+        };
+
+        if(!entry.date || !entry.alk) { alert("Date and Alkalinity are required!"); return; }
+        
+        logs.push(entry);
+        saveToStorage();
+        // Clear inputs
+        document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
+    }
+
+    function clearData() {
+        if(confirm("Are you sure you want to delete all history?")) {
+            localStorage.removeItem('reefLogs');
+            logs = [];
+            renderAll();
+        }
+    }
+
+    // --- VISUALIZATION ---
+    let chartInstance = null;
+
+    function renderAll() {
+        renderTable();
+        renderStatus();
+        renderChart();
+    }
+
+    function renderTable() {
+        const tbody = document.querySelector('#historyTable tbody');
+        tbody.innerHTML = '';
+        // Show newest first for table
+        [...logs].reverse().forEach(log => {
+            const row = `<tr>
+                <td>${log.date}</td>
+                <td>${log.alk}</td>
+                <td>${log.ca}</td>
+                <td>${log.mg}</td>
+                <td>${log.no3}</td>
+                <td>${log.po4}</td>
+                <td>${log.ph}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function renderStatus() {
+        if (logs.length === 0) return;
+        const last = logs[logs.length - 1];
+        const display = document.getElementById('statusDisplay');
+        
+        function getStatus(val, min, max) {
+            if (val >= min && val <= max) return 'good';
+            return 'bad'; // Simple logic for now
+        }
+
+        display.innerHTML = `
+            <div class="status-box ${getStatus(last.alk, 8, 10)}">Alk: ${last.alk}</div>
+            <div class="status-box ${getStatus(last.no3, 2, 10)}">NO3: ${last.no3}</div>
+            <div class="status-box ${getStatus(last.po4, 0.03, 0.1)}">PO4: ${last.po4}</div>
+        `;
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('tankChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: logs.map(l => l.date),
+                datasets: [
+                    { label: 'Alk (dKH)', data: logs.map(l => l.alk), borderColor: '#007bff', tension: 0.1 },
+                    { label: 'Nitrate (ppm)', data: logs.map(l => l.no3), borderColor: '#28a745', tension: 0.1 },
+                    { label: 'Phos (ppm)', data: logs.map(l => l.po4), borderColor: '#dc3545', tension: 0.1 }
+                ]
+            }
+        });
+    }
+
+    // --- DOSING CALCULATOR LOGIC ---
+    function calculateDosing() {
+        if (logs.length < 2) {
+            alert("Need at least 2 log entries to calculate trends!");
+            return;
+        }
+
+        const current = logs[logs.length - 1];
+        const previous = logs[logs.length - 2];
+        const daysDiff = (new Date(current.date) - new Date(previous.date)) / (1000 * 60 * 60 * 24);
+        
+        if (daysDiff === 0) { alert("Entries are on the same day. Cannot calc usage."); return; }
+
+        const currAlkDose = parseFloat(document.getElementById('currAlkDose').value) || 0;
+        const currNitroDose = parseFloat(document.getElementById('currNitroDose').value) || 0;
+
+        // ALKALINITY CALC (Simplified)
+        // If Alk rose, we are dosing too much. If Alk fell, dosing too little.
+        const alkChange = current.alk - previous.alk;
+        let alkMsg = "";
+        
+        // Threshold: 0.3 dKH swing is considered "stable enough"
+        if (alkChange > 0.3) {
+            // It rose significantly. Suggest reduction.
+            // Approx: In 35g, 1ml Brightwell B raises ~0.1 dKH (rough estimate)
+            const reduction = Math.round((alkChange / daysDiff) * 3); // Conservative heuristic
+            alkMsg = `📈 Alk is rising (+${alkChange.toFixed(2)} in ${daysDiff} days).<br> 
+                      👉 <b>Reduce Daily Part B by ~${reduction} mL</b>`;
+        } else if (alkChange < -0.3) {
+            const increase = Math.round((Math.abs(alkChange) / daysDiff) * 3);
+            alkMsg = `📉 Alk is falling (${alkChange.toFixed(2)} in ${daysDiff} days).<br> 
+                      👉 <b>Increase Daily Part B by ~${increase} mL</b>`;
+        } else {
+            alkMsg = `✅ Alk is stable. Keep dosing <b>${currAlkDose} mL</b>.`;
+        }
+
+        // NITRATE CALC
+        const no3Change = current.no3 - previous.no3;
+        let no3Msg = "";
+        
+        if (no3Change > 2.0) {
+             no3Msg = `📈 Nitrates spiking rapidly. <b>Reduce NeoNitro by 50%</b>.`;
+        } else if (no3Change > 0.5 && current.no3 > 5) {
+             no3Msg = `📈 Nitrates drifting up. <b>Reduce NeoNitro by 1-2 mL</b>.`;
+        } else if (no3Change < -1.0 && current.no3 < 2) {
+             no3Msg = `📉 Nitrates dropping fast. <b>Increase feeding or NeoNitro</b>.`;
+        } else {
+             no3Msg = `✅ Nitrates stable. Keep current routine.`;
+        }
+
+        const resDiv = document.getElementById('calc-results');
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = `
+            <h3>Dosing Recommendation</h3>
+            <p>${alkMsg}</p>
+            <hr>
+            <p>${no3Msg}</p>
+            <p style="font-size:0.8em; color:#666;">*Always test again in 3 days after changing doses.</p>
+        `;
+    }
+
+    // Initialize
+    renderAll();
+</script>
+</body>
+</html>
