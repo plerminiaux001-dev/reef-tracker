@@ -61,7 +61,7 @@
 </head>
 <body>
 
-    <h1>🐠 35g Reef Command Center</h1>
+    <h1>🐠 389 Reef Command Center</h1>
 
     <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab('dashboard')">Dashboard</button>
@@ -91,8 +91,8 @@
 
             <div class="card">
                 <h2>🧪 Dosing Assistant</h2>
-                <p>Enter your <b>current daily dose</b> to get a recommendation based on your recent trends.</p>
-                <div class="form-group"><label>Current Brightwell Part B (mL)</label><input type="number" id="currAlkDose" placeholder="e.g. 10"></div>
+                <p>Enter your <b>current daily dose</b>. Recommendations are now based on <b>Calcium uptake</b> (Red Sea Program).</p>
+                <div class="form-group"><label>Current Red Sea Part 1 (Calcium) Dose (mL)</label><input type="number" id="currCaDose" placeholder="e.g. 3.7"></div>
                 <div class="form-group"><label>Current NeoNitro Dose (mL)</label><input type="number" id="currNitroDose" placeholder="e.g. 5"></div>
                 <button onclick="calculateDosing()">Analyze & Adjust</button>
                 <div id="calc-results"></div>
@@ -162,18 +162,13 @@
 <script>
     // --- TABS LOGIC ---
     function openTab(tabId) {
-        // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        // Deactivate all buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        
-        // Show selected tab content
         document.getElementById(tabId).classList.add('active');
-        // Activate selected button (search by text or onclick attr)
         const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
         if(btn) btn.classList.add('active');
     }
@@ -183,13 +178,10 @@
 
     // --- APP LOGIC ---
     let logs = JSON.parse(localStorage.getItem('reefLogs')) || [];
-
-    // Set today's date in input
     const dateInput = document.getElementById('date');
     if(dateInput) dateInput.valueAsDate = new Date();
 
     function saveToStorage() {
-        // Sort by date before saving
         logs.sort((a, b) => new Date(a.date) - new Date(b.date));
         localStorage.setItem('reefLogs', JSON.stringify(logs));
         renderAll();
@@ -210,7 +202,6 @@
         
         logs.push(entry);
         saveToStorage();
-        // Clear inputs
         document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
     }
 
@@ -235,7 +226,6 @@
         const tbody = document.querySelector('#historyTable tbody');
         if(!tbody) return;
         tbody.innerHTML = '';
-        // Show newest first for table
         [...logs].reverse().forEach(log => {
             const row = `<tr>
                 <td>${log.date}</td>
@@ -257,13 +247,13 @@
         
         function getStatus(val, min, max) {
             if (val >= min && val <= max) return 'good';
-            return 'bad'; // Simple logic for now
+            return 'bad';
         }
 
         display.innerHTML = `
             <div class="status-box ${getStatus(last.alk, 8, 10)}">Alk: ${last.alk}</div>
+            <div class="status-box ${getStatus(last.ca, 400, 450)}">Ca: ${last.ca}</div>
             <div class="status-box ${getStatus(last.no3, 2, 10)}">NO3: ${last.no3}</div>
-            <div class="status-box ${getStatus(last.po4, 0.03, 0.1)}">PO4: ${last.po4}</div>
         `;
     }
 
@@ -277,14 +267,14 @@
                 labels: logs.map(l => l.date),
                 datasets: [
                     { label: 'Alk (dKH)', data: logs.map(l => l.alk), borderColor: '#007bff', tension: 0.1 },
-                    { label: 'Nitrate (ppm)', data: logs.map(l => l.no3), borderColor: '#28a745', tension: 0.1 },
-                    { label: 'Phos (ppm)', data: logs.map(l => l.po4), borderColor: '#dc3545', tension: 0.1 }
+                    { label: 'Calcium (ppm)', data: logs.map(l => l.ca), borderColor: '#6f42c1', tension: 0.1 },
+                    { label: 'Nitrate (ppm)', data: logs.map(l => l.no3), borderColor: '#28a745', tension: 0.1 }
                 ]
             }
         });
     }
 
-    // --- DOSING CALCULATOR LOGIC ---
+    // --- DOSING CALCULATOR LOGIC (Updated for Red Sea Calcium) ---
     function calculateDosing() {
         if (logs.length < 2) {
             alert("Need at least 2 log entries to calculate trends!");
@@ -297,35 +287,42 @@
         
         if (daysDiff === 0) { alert("Entries are on the same day. Cannot calc usage."); return; }
 
-        const currAlkDose = parseFloat(document.getElementById('currAlkDose').value) || 0;
+        const currCaDose = parseFloat(document.getElementById('currCaDose').value) || 0;
         const currNitroDose = parseFloat(document.getElementById('currNitroDose').value) || 0;
 
-        // ALKALINITY CALC (Simplified)
-        // If Alk rose, we are dosing too much. If Alk fell, dosing too little.
-        const alkChange = current.alk - previous.alk;
-        let alkMsg = "";
+        // CALCIUM CALCULATION (Red Sea Program)
+        // Red Sea 1: 1ml raises 100L by 2ppm.
+        // Tank is 35g (132L). So 1ml raises this tank by ~1.5 ppm.
+        const caChange = current.ca - previous.ca;
+        let caMsg = "";
         
-        // Threshold: 0.3 dKH swing is considered "stable enough"
-        if (alkChange > 0.3) {
-            // It rose significantly. Suggest reduction.
-            // Approx: In 35g, 1ml Brightwell B raises ~0.1 dKH (rough estimate)
-            const reduction = Math.round((alkChange / daysDiff) * 3); // Conservative heuristic
-            alkMsg = `📈 Alk is rising (+${alkChange.toFixed(2)} in ${daysDiff} days).<br> 
-                      👉 <b>Reduce Daily Part B by ~${reduction} mL</b>`;
-        } else if (alkChange < -0.3) {
-            const increase = Math.round((Math.abs(alkChange) / daysDiff) * 3);
-            alkMsg = `📉 Alk is falling (${alkChange.toFixed(2)} in ${daysDiff} days).<br> 
-                      👉 <b>Increase Daily Part B by ~${increase} mL</b>`;
+        // Threshold: 5 ppm swing is considered stable/noise
+        if (caChange > 5) {
+            // Rising significantly. We are dosing too much.
+            // Calculate how much excess ppm we added per day
+            const dailyExcess = caChange / daysDiff; 
+            const reduceMl = Math.round(dailyExcess / 1.5); 
+            caMsg = `📈 Calcium rising (+${caChange} ppm).<br> 
+                     👉 <b>Reduce Red Sea Part 1 by ~${reduceMl} mL</b>`;
+        } else if (caChange < -5) {
+            // Falling. Need to add more.
+            const dailyDeficit = Math.abs(caChange) / daysDiff;
+            const increaseMl = Math.round(dailyDeficit / 1.5);
+            caMsg = `📉 Calcium falling (${caChange} ppm).<br> 
+                     👉 <b>Increase Red Sea Part 1 by ~${increaseMl} mL</b>`;
         } else {
-            alkMsg = `✅ Alk is stable. Keep dosing <b>${currAlkDose} mL</b>.`;
+            caMsg = `✅ Calcium stable. Keep dosing <b>${currCaDose} mL</b> of Part 1.`;
         }
+
+        // Add note about ratio
+        caMsg += `<br><small style="color:#666; font-style:italic;">*Remember to adjust Parts 2, 3, & 4 proportionally if changing Part 1.</small>`;
 
         // NITRATE CALC
         const no3Change = current.no3 - previous.no3;
         let no3Msg = "";
         
         if (no3Change > 2.0) {
-             no3Msg = `📈 Nitrates spiking rapidly. <b>Reduce NeoNitro by 50%</b>.`;
+             no3Msg = `📈 Nitrates spiking. <b>Reduce NeoNitro by 50%</b>.`;
         } else if (no3Change > 0.5 && current.no3 > 5) {
              no3Msg = `📈 Nitrates drifting up. <b>Reduce NeoNitro by 1-2 mL</b>.`;
         } else if (no3Change < -1.0 && current.no3 < 2) {
@@ -338,7 +335,7 @@
         resDiv.style.display = 'block';
         resDiv.innerHTML = `
             <h3>Dosing Recommendation</h3>
-            <p>${alkMsg}</p>
+            <p>${caMsg}</p>
             <hr>
             <p>${no3Msg}</p>
             <p style="font-size:0.8em; color:#666;">*Always test again in 3 days after changing doses.</p>
