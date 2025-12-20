@@ -6,12 +6,29 @@
     <title>Reef Tank Dashboard & Dosing Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #f4f4f9; --card: #ffffff; --primary: #007bff; --text: #333; }
+        :root { --bg: #f4f4f9; --card: #ffffff; --primary: #007bff; --text: #333; --active-tab: #0056b3; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
-        h1, h2 { color: #2c3e50; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .card { background: var(--card); padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #2c3e50; margin-top: 0; }
         
+        /* Grid Layouts */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .grid-small { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        
+        /* Card Styling */
+        .card { background: var(--card); padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card.highlight { border-top: 5px solid var(--primary); }
+        
+        /* Tab Navigation Styles */
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .tab-btn { background: #e9ecef; color: #555; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: 0.3s; flex: 1; max-width: 200px; text-align: center; }
+        .tab-btn:hover { background: #dcdcdc; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        
+        /* Hide tab content by default */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         /* Form Styles */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
@@ -29,60 +46,138 @@
 
         /* Calculator Output */
         #calc-results { margin-top: 20px; padding: 15px; background: #e9ecef; border-left: 5px solid #007bff; display: none; }
+        
+        /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f9fa; }
+
+        /* Instruction Dosing Cards */
+        .dose-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center; }
+        .dose-amt { font-size: 1.5em; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .dose-chem { font-size: 0.85em; color: #666; font-style: italic; margin-bottom: 5px; }
+        .dose-label { font-weight: bold; color: #2c3e50; }
     </style>
 </head>
 <body>
 
     <h1>🐠 35g Reef Command Center</h1>
 
-    <div class="card" style="margin-bottom: 20px;">
-        <h2>Current Status</h2>
-        <div class="status-grid" id="statusDisplay">
-            <div class="status-box warn">No Data</div>
-        </div>
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" onclick="openTab('instructions')">Dosing Instructions</button>
     </div>
 
-    <div class="grid">
+    <div id="dashboard" class="tab-content active">
+        <div class="card" style="margin-bottom: 20px;">
+            <h2>Current Status</h2>
+            <div class="status-grid" id="statusDisplay">
+                <div class="status-box warn">No Data</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📝 Add New Log</h2>
+                <div class="form-group"><label>Date</label><input type="date" id="date"></div>
+                <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk"></div>
+                <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca"></div>
+                <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg"></div>
+                <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
+                <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
+                <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph"></div>
+                <button onclick="addLog()">Save Entry</button>
+            </div>
+
+            <div class="card">
+                <h2>🧪 Dosing Assistant</h2>
+                <p>Enter your <b>current daily dose</b> to get a recommendation based on your recent trends.</p>
+                <div class="form-group"><label>Current Brightwell Part B (mL)</label><input type="number" id="currAlkDose" placeholder="e.g. 10"></div>
+                <div class="form-group"><label>Current NeoNitro Dose (mL)</label><input type="number" id="currNitroDose" placeholder="e.g. 5"></div>
+                <button onclick="calculateDosing()">Analyze & Adjust</button>
+                <div id="calc-results"></div>
+            </div>
+        </div>
+
         <div class="card">
-            <h2>📝 Add New Log</h2>
-            <div class="form-group"><label>Date</label><input type="date" id="date"></div>
-            <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk"></div>
-            <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca"></div>
-            <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg"></div>
-            <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
-            <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
-            <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph"></div>
-            <button onclick="addLog()">Save Entry</button>
+            <h2>📈 Trends</h2>
+            <canvas id="tankChart"></canvas>
         </div>
 
-        <div class="card">
-            <h2>🧪 Dosing Assistant</h2>
-            <p>Enter your <b>current daily dose</b> to get a recommendation based on your recent trends.</p>
-            <div class="form-group"><label>Current Brightwell Part B (mL)</label><input type="number" id="currAlkDose" placeholder="e.g. 10"></div>
-            <div class="form-group"><label>Current NeoNitro Dose (mL)</label><input type="number" id="currNitroDose" placeholder="e.g. 5"></div>
-            <button onclick="calculateDosing()">Analyze & Adjust</button>
-            <div id="calc-results"></div>
+        <div class="card" style="margin-top: 20px;">
+            <h2>History</h2>
+            <button class="delete" onclick="clearData()" style="width: auto; float: right; padding: 5px 10px;">Clear All Data</button>
+            <table id="historyTable">
+                <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
-    <div class="card">
-        <h2>📈 Trends</h2>
-        <canvas id="tankChart"></canvas>
-    </div>
+    <div id="instructions" class="tab-content">
+        <div class="card highlight">
+            <h2>Foundation & Trace Elements</h2>
+            <h3>Complete 4-part Supplement Program</h3>
+            <p>This is an easy-dose program based on calcium uptake. All four parts are provided in a single pack and will finish at the same time.</p>
+            
+            <div class="grid-small">
+                <div class="dose-card">
+                    <div class="dose-label">Reef Care 1</div>
+                    <div>Calcium & Magnesium+</div>
+                    <div class="dose-chem">Ca | Mg | Sr | Ba</div>
+                    <div class="dose-amt">3.7 ml</div>
+                    <div>Daily</div>
+                </div>
 
-    <div class="card" style="margin-top: 20px;">
-        <h2>History</h2>
-        <button class="delete" onclick="clearData()" style="width: auto; float: right; padding: 5px 10px;">Clear All Data</button>
-        <table id="historyTable">
-            <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
-            <tbody></tbody>
-        </table>
+                <div class="dose-card">
+                    <div class="dose-label">Reef Care 2</div>
+                    <div>KH/Alkalinity & pH</div>
+                    <div class="dose-chem">Alkalinity Components</div>
+                    <div class="dose-amt">7.5 ml</div>
+                    <div>Daily</div>
+                </div>
+
+                <div class="dose-card">
+                    <div class="dose-label">Reef Care 3</div>
+                    <div>Iodine & Potassium+</div>
+                    <div class="dose-chem">I₂ | Br₂ | F₂ | K & Trace</div>
+                    <div class="dose-amt">1.9 ml</div>
+                    <div>Daily</div>
+                </div>
+
+                <div class="dose-card">
+                    <div class="dose-label">Reef Care 4</div>
+                    <div>Iron & Bioactive</div>
+                    <div class="dose-chem">Fe + 23 elements</div>
+                    <div class="dose-amt">1.9 ml</div>
+                    <div>Daily</div>
+                </div>
+            </div>
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            <p style="text-align: right; font-weight: bold; color: #555;">Avg. cost for your tank size/month: <span style="color: #28a745;">$10.12</span></p>
+        </div>
     </div>
 
 <script>
+    // --- TABS LOGIC ---
+    function openTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        // Deactivate all buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Show selected tab content
+        document.getElementById(tabId).classList.add('active');
+        // Activate selected button (search by text or onclick attr)
+        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+        if(btn) btn.classList.add('active');
+    }
+
     // --- CONFIGURATION ---
     const TANK_VOL = 35; // gallons
 
@@ -90,7 +185,8 @@
     let logs = JSON.parse(localStorage.getItem('reefLogs')) || [];
 
     // Set today's date in input
-    document.getElementById('date').valueAsDate = new Date();
+    const dateInput = document.getElementById('date');
+    if(dateInput) dateInput.valueAsDate = new Date();
 
     function saveToStorage() {
         // Sort by date before saving
@@ -137,6 +233,7 @@
 
     function renderTable() {
         const tbody = document.querySelector('#historyTable tbody');
+        if(!tbody) return;
         tbody.innerHTML = '';
         // Show newest first for table
         [...logs].reverse().forEach(log => {
