@@ -53,20 +53,20 @@
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f9fa; }
         
-        /* Recipe Table (New) */
+        /* Info Tables (Instructions Tab) */
+        .info-table { width: 100%; border: 1px solid #eee; margin-bottom: 20px; font-size: 0.9em; }
+        .info-table th { background: #007bff; color: white; text-align: center; }
+        .info-table td { text-align: center; border-bottom: 1px solid #eee; }
+        .info-table tr:last-child td { border-bottom: none; }
+
+        /* Recipe Table */
         .recipe-table td { font-weight: bold; color: #555; }
         .recipe-table td:last-child { color: var(--primary); font-size: 1.1em; text-align: right; }
-
-        /* Instruction Dosing Cards */
-        .dose-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center; }
-        .dose-amt { font-size: 1.5em; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        .dose-chem { font-size: 0.85em; color: #666; font-style: italic; margin-bottom: 5px; }
-        .dose-label { font-weight: bold; color: #2c3e50; }
     </style>
 </head>
 <body>
 
-    <h1>🐠 389 Reef Command Center</h1>
+    <h1>🐠 35g Reef Command Center</h1>
 
     <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab('dashboard')">Dashboard</button>
@@ -131,46 +131,42 @@
 
     <div id="instructions" class="tab-content">
         <div class="card highlight">
-            <h2>Foundation & Trace Elements</h2>
-            <h3>Complete 4-part Supplement Program</h3>
-            <p>This is an easy-dose program based on calcium uptake. All four parts are provided in a single pack and will finish at the same time.</p>
-            
-            <div class="grid-small">
-                <div class="dose-card">
-                    <div class="dose-label">Reef Care 1</div>
-                    <div>Calcium & Magnesium+</div>
-                    <div class="dose-chem">Ca | Mg | Sr | Ba</div>
-                    <div class="dose-amt">3.7 ml</div>
-                    <div>Daily</div>
-                </div>
+            <h2>Red Sea Complete Reef Care</h2>
+            <p>A 4-part program based on Calcium uptake. All 4 parts are dosed in a fixed ratio.</p>
 
-                <div class="dose-card">
-                    <div class="dose-label">Reef Care 2</div>
-                    <div>KH/Alkalinity & pH</div>
-                    <div class="dose-chem">Alkalinity Components</div>
-                    <div class="dose-amt">7.5 ml</div>
-                    <div>Daily</div>
-                </div>
+            <h3>1. Recommended Parameters</h3>
+            <table class="info-table">
+                <thead>
+                    <tr><th>Type</th><th>Salinity</th><th>Calcium</th><th>Alkalinity</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Mixed Reef</td><td>34 ppt</td><td>450 ppm</td><td>11.5 dKH</td></tr>
+                    <tr><td>SPS Dominant</td><td>35 ppt</td><td>430 ppm</td><td>8.0 dKH</td></tr>
+                    <tr><td>ULNS / Low Nutrients</td><td>33 ppt</td><td>410 ppm</td><td>7.0 dKH</td></tr>
+                </tbody>
+            </table>
 
-                <div class="dose-card">
-                    <div class="dose-label">Reef Care 3</div>
-                    <div>Iodine & Potassium+</div>
-                    <div class="dose-chem">I₂ | Br₂ | F₂ | K & Trace</div>
-                    <div class="dose-amt">1.9 ml</div>
-                    <div>Daily</div>
-                </div>
+            <h3>2. Dosing Ratios</h3>
+            <p style="font-size:0.9em; color:#666;">The system uses Part 1 (Calcium) as the master dose. All other parts are calculated relative to it.</p>
+            <table class="info-table">
+                <thead>
+                    <tr><th>Supplement</th><th>Ratio</th><th>Dose per 1mL of Part 1</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><b>Part 1</b> (Ca & Mg)</td><td>1.0</td><td>1 mL</td></tr>
+                    <tr><td><b>Part 2</b> (Alk & pH)</td><td>2.0</td><td>2 mL</td></tr>
+                    <tr><td><b>Part 3</b> (Iodine & K)</td><td>0.5</td><td>0.5 mL</td></tr>
+                    <tr><td><b>Part 4</b> (Iron & Bio)</td><td>0.5</td><td>0.5 mL</td></tr>
+                </tbody>
+            </table>
 
-                <div class="dose-card">
-                    <div class="dose-label">Reef Care 4</div>
-                    <div>Iron & Bioactive</div>
-                    <div class="dose-chem">Fe + 23 elements</div>
-                    <div class="dose-amt">1.9 ml</div>
-                    <div>Daily</div>
-                </div>
-            </div>
-
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-            <p style="text-align: right; font-weight: bold; color: #555;">Avg. cost for your tank size/month: <span style="color: #28a745;">$10.12</span></p>
+            <h3>3. Rules of Thumb</h3>
+            <ul style="line-height:1.6; color:#444;">
+                <li><b>Separation:</b> Wait at least 10 minutes between dosing each part.</li>
+                <li><b>Order:</b> Always dose in numerical order (1 &rarr; 2 &rarr; 3 &rarr; 4).</li>
+                <li><b>Max Daily Increase:</b> Do not raise Calcium by more than 20ppm or Alkalinity by more than 1.4 dKH per day.</li>
+                <li><b>Adjustment:</b> If Calcium needs a large correction, calculate the total needed and divide by 3 to spread it over 3 days.</li>
+            </ul>
         </div>
     </div>
 
@@ -189,13 +185,20 @@
     }
 
     // --- CONFIGURATION ---
-    const TANK_VOL = 35; // gallons
-    const CA_IMPACT_FACTOR = 1.51; // 1ml of RC1 raises 35g by ~1.51 ppm
-    
-    // RED SEA RATIOS
-    const RATIO_P2 = 7.5 / 3.7; // ~2.027
-    const RATIO_P3 = 1.9 / 3.7; // ~0.5135
-    const RATIO_P4 = 1.9 / 3.7; // ~0.5135
+    const TANK_GAL = 35; 
+    const TANK_LITERS = TANK_GAL * 3.78541; // ~132.5 Liters
+
+    // IMPACT FACTOR (Based on Red Sea Manual)
+    // 1ml of Part 1 raises 100 Liters by 1.4 ppm.
+    const CA_IMPACT_PER_100L = 1.4; 
+    const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
+    // Result: 1ml raises your 35g tank by ~1.056 ppm Ca
+
+    // DOSING RATIOS (Based on Red Sea Manual)
+    // Ratio is 1 : 2 : 0.5 : 0.5
+    const RATIO_P2 = 2.0;
+    const RATIO_P3 = 0.5;
+    const RATIO_P4 = 0.5;
 
     // --- APP LOGIC ---
     let logs = JSON.parse(localStorage.getItem('reefLogs')) || [];
@@ -303,10 +306,10 @@
         
         return `
             <table class="recipe-table" style="background:white; border-radius:5px; border:1px solid #eee;">
-                <tr><td>Reef Care 1 (Ca)</td><td>${baseP1.toFixed(1)} mL</td></tr>
-                <tr><td>Reef Care 2 (Alk)</td><td>${p2.toFixed(1)} mL</td></tr>
-                <tr><td>Reef Care 3 (Trace)</td><td>${p3.toFixed(1)} mL</td></tr>
-                <tr><td>Reef Care 4 (Bio)</td><td>${p4.toFixed(1)} mL</td></tr>
+                <tr><td>Part 1 (Ca/Mg)</td><td>${baseP1.toFixed(1)} mL</td></tr>
+                <tr><td>Part 2 (Alk)</td><td>${p2.toFixed(1)} mL</td></tr>
+                <tr><td>Part 3 (Iodine)</td><td>${p3.toFixed(1)} mL</td></tr>
+                <tr><td>Part 4 (Bioactive)</td><td>${p4.toFixed(1)} mL</td></tr>
             </table>
         `;
     }
@@ -323,13 +326,23 @@
         // 1. Calculate One-Time Correction
         const gap = targetCa - currentCa;
         let correctionMsg = "✅ Levels match target.";
+        
         if (Math.abs(gap) > 2) {
-            const correctionMl = gap / CA_IMPACT_FACTOR;
+            // Formula: Gap / Impact Factor
+            const totalCorrectionMl = gap / CA_IMPACT_FACTOR;
+            
             if (gap > 0) {
-                correctionMsg = `👉 <b>Correction Dose (Part 1 Only):</b> Add <span class="calc-highlight">${correctionMl.toFixed(1)} mL</span> once.<br><small style="color:#666">Do not dose Parts 2, 3, or 4 for this correction.</small>`;
-                if(gap > 20) correctionMsg += ` <br><span style="color:red; font-weight:bold;">⚠️ Large shift! Split this dose over 2 days.</span>`;
+                // Large corrections should be split (Manual suggests dividing by 3 for daily increase)
+                // We will suggest a 3-day correction plan if dose is high.
+                if (gap > 20) {
+                     const dailyCorr = totalCorrectionMl / 3;
+                     correctionMsg = `👉 <b>Correction Needed:</b> Total +${gap} ppm.<br>
+                     Add <span class="calc-highlight">${dailyCorr.toFixed(1)} mL</span> of Part 1 per day for 3 days.`;
+                } else {
+                     correctionMsg = `👉 <b>Correction Dose (Part 1 Only):</b> Add <span class="calc-highlight">${totalCorrectionMl.toFixed(1)} mL</span> once.<br><small style="color:#666">Do not dose Parts 2, 3, or 4 for this correction.</small>`;
+                }
             } else {
-                correctionMsg = `👉 <b>Correction:</b> Levels high. Skip Part 1 today.`;
+                correctionMsg = `👉 <b>Correction:</b> Levels high. Skip Part 1 until ${targetCa} ppm is reached.`;
             }
         }
 
