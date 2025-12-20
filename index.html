@@ -52,6 +52,10 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f9fa; }
+        
+        /* Recipe Table (New) */
+        .recipe-table td { font-weight: bold; color: #555; }
+        .recipe-table td:last-child { color: var(--primary); font-size: 1.1em; text-align: right; }
 
         /* Instruction Dosing Cards */
         .dose-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center; }
@@ -92,9 +96,9 @@
 
             <div class="card">
                 <h2>🧪 Dosing Assistant</h2>
-                <p>Calculate adjustments for <b>Red Sea Part 1 (Calcium)</b>.</p>
+                <p>Calculate your daily Red Sea recipe based on Calcium uptake.</p>
                 
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
                     <div class="form-group">
                         <label>Current Ca (ppm)</label>
                         <input type="number" id="calcCurrentCa" placeholder="...">
@@ -105,10 +109,7 @@
                     </div>
                 </div>
 
-                <div class="form-group"><label>Current Daily Dose (mL)</label><input type="number" id="currCaDose" placeholder="e.g. 3.7"></div>
-                <div class="form-group"><label>Current NeoNitro Dose (mL)</label><input type="number" id="currNitroDose" placeholder="e.g. 5"></div>
-                
-                <button onclick="calculateDosing()">Analyze & Adjust</button>
+                <button onclick="calculateDosing()">Calculate Recipe</button>
                 <div id="calc-results"></div>
             </div>
         </div>
@@ -189,10 +190,13 @@
 
     // --- CONFIGURATION ---
     const TANK_VOL = 35; // gallons
-    // Red Sea Math: 1ml raises 100L by 2ppm. 
-    // 35g = 132L. 
-    // Impact Factor: 1ml raises 132L by approx 1.51 ppm.
-    const CA_IMPACT_FACTOR = 1.51; 
+    const CA_IMPACT_FACTOR = 1.51; // 1ml of RC1 raises 35g by ~1.51 ppm
+    
+    // RED SEA RATIOS (Derived from instructions)
+    // Base: 3.7ml Part 1
+    const RATIO_P2 = 7.5 / 3.7; // ~2.027
+    const RATIO_P3 = 1.9 / 3.7; // ~0.5135
+    const RATIO_P4 = 1.9 / 3.7; // ~0.5135
 
     // --- APP LOGIC ---
     let logs = JSON.parse(localStorage.getItem('reefLogs')) || [];
@@ -221,7 +225,6 @@
         logs.push(entry);
         saveToStorage();
         document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
-        // Reset defaults
         document.getElementById('calcTargetCa').value = "430";
     }
 
@@ -240,8 +243,6 @@
         renderTable();
         renderStatus();
         renderChart();
-        
-        // Auto-populate calc input
         if(logs.length > 0) {
             const last = logs[logs.length - 1];
             if(last.ca) document.getElementById('calcCurrentCa').value = last.ca;
@@ -270,11 +271,7 @@
         if (logs.length === 0) return;
         const last = logs[logs.length - 1];
         const display = document.getElementById('statusDisplay');
-        
-        function getStatus(val, min, max) {
-            if (val >= min && val <= max) return 'good';
-            return 'bad';
-        }
+        function getStatus(val, min, max) { return (val >= min && val <= max) ? 'good' : 'bad'; }
 
         display.innerHTML = `
             <div class="status-box ${getStatus(last.alk, 8, 10)}">Alk: ${last.alk}</div>
@@ -286,7 +283,6 @@
     function renderChart() {
         const ctx = document.getElementById('tankChart').getContext('2d');
         if (chartInstance) chartInstance.destroy();
-
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
@@ -300,99 +296,87 @@
         });
     }
 
-    // --- DOSING CALCULATOR LOGIC (Target Based) ---
+    // --- DOSING CALCULATOR LOGIC ---
     function calculateDosing() {
-        // Inputs
         const currentCa = parseFloat(document.getElementById('calcCurrentCa').value);
         const targetCa = parseFloat(document.getElementById('calcTargetCa').value);
-        const currCaDose = parseFloat(document.getElementById('currCaDose').value) || 0;
-        const currNitroDose = parseFloat(document.getElementById('currNitroDose').value) || 0;
 
         if (!currentCa || !targetCa) { alert("Please enter Current and Target Calcium."); return; }
         
-        // 1. Calculate Trend (Consumption) from Logs
-        // We need logs to know if the tank is consuming more or less than the current dose provides.
-        let consumptionMsg = "";
-        let suggestedDailyDose = currCaDose;
+        let planHTML = "";
         
-        if (logs.length >= 2) {
-            const currentLog = logs[logs.length - 1];
-            const prevLog = logs[logs.length - 2];
-            const daysDiff = (new Date(currentLog.date) - new Date(prevLog.date)) / (1000 * 60 * 60 * 24);
-
-            if (daysDiff > 0 && currentLog.ca && prevLog.ca) {
-                const caChange = currentLog.ca - prevLog.ca; // e.g. -10 (dropped) or +5 (rose)
-                const dailyChange = caChange / daysDiff; // e.g. -5 ppm per day
-                
-                // If dailyChange is negative, we are under-dosing.
-                // If positive, we are over-dosing.
-                // How many mL represents that change?
-                const mlAdjustment = Math.abs(dailyChange) / CA_IMPACT_FACTOR;
-
-                if (dailyChange < -2) {
-                    suggestedDailyDose += mlAdjustment;
-                    consumptionMsg = `📉 Tank is consuming calcium faster than you are dosing.<br><b>Increase Daily Dose to: ${suggestedDailyDose.toFixed(1)} mL</b>`;
-                } else if (dailyChange > 2) {
-                    suggestedDailyDose -= mlAdjustment;
-                    if(suggestedDailyDose < 0) suggestedDailyDose = 0;
-                    consumptionMsg = `📈 Calcium is accumulating.<br><b>Reduce Daily Dose to: ${suggestedDailyDose.toFixed(1)} mL</b>`;
-                } else {
-                    consumptionMsg = `✅ Daily consumption is stable. Keep dosing <b>${currCaDose} mL/day</b>.`;
-                }
-            } else {
-                consumptionMsg = "⚠️ Not enough history to calculate consumption trend.";
-            }
-        } else {
-            consumptionMsg = "⚠️ Need 2+ logs to calculate daily consumption.";
-        }
-
-        // 2. Calculate Correction (Gap to Target)
-        // This is purely: "I am at X, I want to be at Y"
+        // 1. Calculate One-Time Correction
         const gap = targetCa - currentCa;
-        let correctionMsg = "";
-        
-        if (Math.abs(gap) > 5) {
+        let correctionMsg = "✅ Levels match target.";
+        if (Math.abs(gap) > 2) {
             const correctionMl = gap / CA_IMPACT_FACTOR;
             if (gap > 0) {
-                correctionMsg = `👉 <b>One-Time Correction:</b> Add <span class="calc-highlight">${correctionMl.toFixed(1)} mL</span> of Part 1 to reach ${targetCa}.`;
-                if (gap > 20) {
-                    correctionMsg += `<br><small style="color:red;">⚠️ Large increase! Split this dose over 2 days.</small>`;
-                }
+                correctionMsg = `👉 <b>Correction Dose (Part 1):</b> Add <span class="calc-highlight">${correctionMl.toFixed(1)} mL</span> once.`;
+                if(gap > 20) correctionMsg += ` <small style="color:red">(Split over 2 days)</small>`;
             } else {
-                correctionMsg = `👉 <b>One-Time Correction:</b> Skip dosing for a day or two until levels drop to ${targetCa}.`;
+                correctionMsg = `👉 <b>Correction:</b> Levels high. Skip Part 1 today.`;
+            }
+        }
+
+        // 2. Calculate New Daily Recipe based on Consumption
+        let dailyP1 = 0;
+        let consumptionMsg = "";
+        
+        if (logs.length >= 2) {
+            const curL = logs[logs.length-1];
+            const preL = logs[logs.length-2];
+            const days = (new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24);
+            
+            if(days > 0 && curL.ca && preL.ca) {
+                const caLoss = preL.ca - curL.ca; // Positive means we lost Ca (consumed)
+                // Note: This assumes NO dosing happened between logs. 
+                // A true "Consumption" calc usually requires: (Start - End) + Dosed Amount.
+                // Since we removed dosing input, we will estimate strictly on "Daily Drop".
+                // Ideally: Users input their PREVIOUS dose to get exact consumption.
+                // For now, we will just show the "Replacement Dose" for the observed drop.
+                
+                const dailyDrop = caLoss / days;
+                
+                if (dailyDrop > 0) {
+                    dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
+                    consumptionMsg = `📉 Tank is consuming ~${dailyDrop.toFixed(1)} ppm Ca/day.`;
+                } else {
+                    dailyP1 = 0; // Levels rising without dosing? Check water changes.
+                    consumptionMsg = `📈 Levels rising (${Math.abs(dailyDrop).toFixed(1)} ppm/day). Zero daily dose recommended.`;
+                }
+
+                // Generate Recipe Table
+                const p2 = dailyP1 * RATIO_P2;
+                const p3 = dailyP1 * RATIO_P3;
+                const p4 = dailyP1 * RATIO_P4;
+
+                planHTML = `
+                    <h3>New Daily Schedule</h3>
+                    <p style="font-size:0.9em; margin-bottom:10px;">${consumptionMsg}</p>
+                    <table class="recipe-table" style="background:white; border-radius:5px; border:1px solid #eee;">
+                        <tr><td>Reef Care 1 (Ca)</td><td>${dailyP1.toFixed(1)} mL</td></tr>
+                        <tr><td>Reef Care 2 (Alk)</td><td>${p2.toFixed(1)} mL</td></tr>
+                        <tr><td>Reef Care 3 (Trace)</td><td>${p3.toFixed(1)} mL</td></tr>
+                        <tr><td>Reef Care 4 (Bio)</td><td>${p4.toFixed(1)} mL</td></tr>
+                    </table>
+                `;
+
+            } else {
+                planHTML = `<p>⚠️ Not enough history to calculate daily consumption. Please log at least 2 entries separated by a few days.</p>`;
             }
         } else {
-            correctionMsg = `✅ You are at your target level.`;
+            planHTML = `<p>⚠️ Need 2+ logs to calculate a daily schedule.</p>`;
         }
 
-        // 3. Nitrate Logic
-        let no3Msg = "";
-        if (logs.length >= 2) {
-             const curL = logs[logs.length-1];
-             const preL = logs[logs.length-2];
-             const d = curL.no3 - preL.no3;
-             if(d > 2) no3Msg = "Nitrates rising fast. Cut NeoNitro 50%.";
-             else if(d < -1) no3Msg = "Nitrates falling. Increase food/Nitro.";
-             else no3Msg = "Nitrates stable.";
-        }
-
-        // Output
         const resDiv = document.getElementById('calc-results');
         resDiv.style.display = 'block';
         resDiv.innerHTML = `
-            <h3>Dosing Plan</h3>
-            <p>${consumptionMsg}</p>
+            ${planHTML}
             <hr>
             <p>${correctionMsg}</p>
-            <p style="font-size:0.9em; background:#fff3cd; padding:5px; border-radius:4px;">
-                <b>Note:</b> If changing Part 1 (Calcium) dose, remember to adjust Parts 2, 3, & 4 proportionally to maintain Red Sea ratios.
-            </p>
-            <hr>
-            <p><b>Nitrate Status:</b> ${no3Msg}</p>
         `;
     }
 
-    // Initialize
     renderAll();
 </script>
 </body>
