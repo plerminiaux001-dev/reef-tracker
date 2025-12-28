@@ -5,12 +5,12 @@ const TANK_LITERS = TANK_GAL * 3.78541;
 const CA_IMPACT_PER_100L = 1.4; // ppm per 100L per mL
 const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); // ppm per mL for this tank
 
-// Dosing Multipliers (Relative to Calcium)
+// Dosing Multipliers
 const RATIO_P2 = 2.0;
 const RATIO_P3 = 0.5;
 const RATIO_P4 = 0.5;
 
-// 🎨 SAFE RANGES (Edit these to match your reef goals)
+// 🎨 SAFE RANGES
 const RANGES = {
     alk: { min: 8.0, max: 10.0 },
     ca:  { min: 400, max: 460 },
@@ -37,37 +37,38 @@ const calcTargetCaInput = document.getElementById('calcTargetCa');
 const tankCtx = document.getElementById('tankChart').getContext('2d');
 const chartCheckboxes = document.querySelectorAll('.chart-check-label input');
 
+// Salt Mix Elements
+const btnMix = document.getElementById('btnMix');
+const mixVol = document.getElementById('mixVol');
+const mixTarget = document.getElementById('mixTarget');
+const mixResult = document.getElementById('mixResult');
+const resGrams = document.getElementById('resGrams');
+const resCups = document.getElementById('resCups');
+
 // Helper: safely parse number
 const toNum = v => {
     const n = parseFloat(v);
     return Number.isFinite(n) ? n : null;
 };
 
-// Helper: Determine color class based on value
+// Helper: Determine color class
 const getStatusClass = (type, val) => {
     if (val === null || val === undefined) return '';
     const range = RANGES[type];
     if (!range) return ''; 
-
-    // Perfect Range = Green
     if (val >= range.min && val <= range.max) return 'good';
-    
-    // Slight deviation (10% off) = Yellow
     const buffer = (range.max - range.min) * 0.5; 
     if (val >= range.min - buffer && val <= range.max + buffer) return 'warn';
-    
-    // Way off = Red
     return 'bad';
 };
 
-// Helper: Format YYYY-MM-DD to MM/DD/YYYY
+// Helper: Format Date MM/DD/YYYY
 const formatDate = (isoString) => {
     if (!isoString) return '-';
-    // Handle cases where string might be full ISO (2025-12-28T00:00...)
     const cleanDate = isoString.toString().split('T')[0];
     const parts = cleanDate.split('-');
     if (parts.length !== 3) return cleanDate;
-    return `${parts[1]}/${parts[2]}/${parts[0]}`; // MM/DD/YYYY
+    return `${parts[1]}/${parts[2]}/${parts[0]}`;
 };
 
 // Tab navigation
@@ -91,6 +92,32 @@ if (dateInput) dateInput.valueAsDate = new Date();
 saveEntryBtn.addEventListener('click', submitLog);
 refreshBtn.addEventListener('click', () => loadData(true));
 calcBtn.addEventListener('click', calculateDosing);
+
+// Salt Mix Listener
+if(btnMix) {
+    btnMix.addEventListener('click', () => {
+        const vol = parseFloat(mixVol.value);
+        const sg = parseFloat(mixTarget.value);
+        
+        if(!vol || !sg) return;
+
+        // CALIBRATION FOR RED SEA CORAL PRO
+        // Target: 38.2g/Liter @ 35ppt (1.026)
+        // 38.2g * 3.785L = ~144.6 grams/gallon
+        const baseGramsPerGal = 145; 
+        
+        // Ratio adjustment (Linear approximation)
+        // (SG - 1) / 0.026 gives % of "Full Strength" (1.026)
+        const ratio = (sg - 1) / 0.026;
+        
+        const totalGrams = vol * baseGramsPerGal * ratio;
+        const totalCups = totalGrams / 280; // Red Sea Pro is dense (~280g/cup)
+
+        resGrams.innerText = Math.round(totalGrams);
+        resCups.innerText = totalCups.toFixed(2);
+        mixResult.style.display = 'block';
+    });
+}
 
 // Checkbox listener for graph
 chartCheckboxes.forEach(cb => {
@@ -125,7 +152,7 @@ async function loadData(forceRefresh = false) {
         logs = data.map(item => {
             const rawDate = (item.date || '').toString().split('T')[0];
             return {
-                date: formatDate(rawDate), // Convert to MM/DD/YYYY here
+                date: formatDate(rawDate),
                 alk: toNum(item.alk),
                 ca: toNum(item.ca),
                 mg: toNum(item.mg),
@@ -135,7 +162,6 @@ async function loadData(forceRefresh = false) {
             };
         }).filter(item => item.date !== '-');
 
-        // Sort by Date (Requires converting back to standard date object for comparison)
         logs.sort((a,b) => new Date(a.date) - new Date(b.date));
         renderAll();
     } catch (err) {
@@ -151,7 +177,6 @@ async function submitLog() {
     btn.innerText = "Saving...";
     btn.disabled = true;
 
-    // Grab values. Note: Input value is always YYYY-MM-DD
     const rawInputDate = (dateInput.value || '').trim();
     
     const entry = {
@@ -199,7 +224,6 @@ async function submitLog() {
         }
     }
 
-    // Push to local log with formatted date for display
     logs.push({
         date: formatDate(rawInputDate),
         alk: toNum(entry.alk),
@@ -230,11 +254,8 @@ function renderTable() {
     if (!historyTbody) return;
     const frag = document.createDocumentFragment();
     
-    // Copy array and reverse to show newest first
     [...logs].slice().reverse().forEach(log => {
         const tr = document.createElement('tr');
-        
-        // Helper to create TD with dynamic class
         const mkCell = (type, val) => {
             const cls = getStatusClass(type, val);
             const style = (cls === 'good' || cls === 'bad') ? 'color: white;' : '';
