@@ -224,9 +224,10 @@ function renderStatus() {
 function renderChart() {
     const labels = logs.map(l => l.date);
     
-    // Define datasets with assigned Axis IDs
+    // Dataset Order MUST match HTML checkbox "data-idx" order:
+    // 0: Alk, 1: Ca, 2: Mg, 3: NO3, 4: PO4, 5: pH
     const datasets = [
-        // Left Axis (Low Numbers)
+        // 0. Alk (Left Axis)
         { 
             label: 'Alk', 
             data: logs.map(l => l.alk), 
@@ -235,32 +236,7 @@ function renderChart() {
             yAxisID: 'y',
             spanGaps: true 
         },
-        { 
-            label: 'NO3', 
-            data: logs.map(l => l.no3), 
-            borderColor: '#28a745', 
-            backgroundColor: '#28a745', 
-            yAxisID: 'y',
-            spanGaps: true 
-        },
-        { 
-            label: 'PO4', 
-            data: logs.map(l => l.po4), 
-            borderColor: '#20c997', 
-            backgroundColor: '#20c997', 
-            yAxisID: 'y',
-            spanGaps: true 
-        },
-        { 
-            label: 'pH',  
-            data: logs.map(l => l.ph),  
-            borderColor: '#dc3545', 
-            backgroundColor: '#dc3545', 
-            yAxisID: 'y',
-            spanGaps: true 
-        },
-
-        // Right Axis (High Numbers: Ca & Mg)
+        // 1. Ca (Right Axis)
         { 
             label: 'Ca',  
             data: logs.map(l => l.ca),  
@@ -269,12 +245,40 @@ function renderChart() {
             yAxisID: 'y1',
             spanGaps: true 
         },
+        // 2. Mg (Right Axis)
         { 
             label: 'Mg',  
             data: logs.map(l => l.mg),  
             borderColor: '#fd7e14', 
             backgroundColor: '#fd7e14', 
             yAxisID: 'y1',
+            spanGaps: true 
+        },
+        // 3. NO3 (Left Axis)
+        { 
+            label: 'NO3', 
+            data: logs.map(l => l.no3), 
+            borderColor: '#28a745', 
+            backgroundColor: '#28a745', 
+            yAxisID: 'y',
+            spanGaps: true 
+        },
+        // 4. PO4 (Left Axis)
+        { 
+            label: 'PO4', 
+            data: logs.map(l => l.po4), 
+            borderColor: '#20c997', 
+            backgroundColor: '#20c997', 
+            yAxisID: 'y',
+            spanGaps: true 
+        },
+        // 5. pH (Left Axis)
+        { 
+            label: 'pH',  
+            data: logs.map(l => l.ph),  
+            borderColor: '#dc3545', 
+            backgroundColor: '#dc3545', 
+            yAxisID: 'y',
             spanGaps: true 
         }
     ];
@@ -311,7 +315,7 @@ function renderChart() {
                     display: true,
                     grid: { color: '#eee' }
                 },
-                // LEFT AXIS (Small numbers: Alk, NO3, pH)
+                // LEFT AXIS (Small numbers)
                 y: {
                     type: 'linear',
                     display: true,
@@ -319,14 +323,13 @@ function renderChart() {
                     title: { display: true, text: 'Alk / pH / Nutrients' },
                     grid: { color: '#eee' }
                 },
-                // RIGHT AXIS (Big numbers: Ca, Mg)
+                // RIGHT AXIS (Big numbers)
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
                     title: { display: true, text: 'Calcium / Magnesium' },
-                    // Hide grid lines for the second axis to keep it clean
-                    grid: { drawOnChartArea: false } 
+                    grid: { drawOnChartArea: false } // Cleaner look
                 },
             }
         }
