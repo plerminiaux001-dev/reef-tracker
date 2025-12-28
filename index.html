@@ -1,58 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Reef Tank Dashboard & Dosing Calculator</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         :root { --bg: #f4f4f9; --card: #ffffff; --primary: #007bff; --text: #333; --active-tab: #0056b3; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
         h1, h2, h3 { color: #2c3e50; margin-top: 0; }
-        
-        /* Grid Layouts */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
         .grid-small { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
-        
-        /* Card Styling */
         .card { background: var(--card); padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .card.highlight { border-top: 5px solid var(--primary); }
-        
-        /* Tab Navigation Styles */
         .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .tab-btn { background: #e9ecef; color: #555; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: 0.3s; flex: 1; max-width: 200px; text-align: center; }
+        .tab-btn { background: #e9ecef; color: #555; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: 0.3s; flex: 1; max-width: 200px; }
         .tab-btn:hover { background: #dcdcdc; }
         .tab-btn.active { background: var(--primary); color: white; }
-        
-        /* Hide tab content by default */
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Form Styles */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
         input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
         button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
         button:hover { background: #0056b3; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-
-        /* Status Indicators */
         .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .status-box { padding: 10px; border-radius: 5px; text-align: center; color: white; font-weight: bold; }
         .good { background: #28a745; }
-        .warn { background: #ffc107; color: #333; }
+        .warn { background: #ffc107; color:#333; }
         .bad { background: #dc3545; }
-
-        /* Calculator Output */
         #calc-results { margin-top: 20px; padding: 15px; background: #e9ecef; border-left: 5px solid #007bff; display: none; }
-        
-        /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f9fa; }
-        
-        /* Info Tables (Instructions Tab) */
         .info-table { width: 100%; border: 1px solid #eee; margin-bottom: 20px; font-size: 0.9em; }
         .info-table th { background: #007bff; color: white; text-align: center; }
         .info-table td { text-align: center; border-bottom: 1px solid #eee; }
@@ -64,8 +46,8 @@
     <h1>🐠 389 Reef Command Center</h1>
 
     <div class="tab-nav">
-        <button class="tab-btn active" onclick="openTab('dashboard')">Dashboard</button>
-        <button class="tab-btn" onclick="openTab('instructions')">Dosing Instructions</button>
+        <button class="tab-btn active" data-target="dashboard">Dashboard</button>
+        <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
     </div>
 
     <div id="dashboard" class="tab-content active">
@@ -79,33 +61,33 @@
         <div class="grid">
             <div class="card">
                 <h2>📝 Add New Log</h2>
-                <div class="form-group"><label>Date</label><input type="date" id="date"></div>
-                <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk"></div>
-                <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca"></div>
-                <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg"></div>
-                <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
-                <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
-                <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph"></div>
-                <button onclick="addLog()">Save Entry</button>
+                <div class="form-group"><label for="date">Date</label><input type="date" id="date"></div>
+                <div class="form-group"><label for="alk">Alkalinity (dKH)</label><input type="number" step="0.1" id="alk"></div>
+                <div class="form-group"><label for="ca">Calcium (ppm)</label><input type="number" id="ca"></div>
+                <div class="form-group"><label for="mg">Magnesium (ppm)</label><input type="number" id="mg"></div>
+                <div class="form-group"><label for="no3">Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
+                <div class="form-group"><label for="po4">Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
+                <div class="form-group"><label for="ph">pH</label><input type="number" step="0.1" id="ph"></div>
+                <button id="saveEntryBtn">Save Entry</button>
             </div>
 
             <div class="card">
                 <h2>🧪 Dosing Assistant</h2>
                 <p>Calculate your daily Red Sea recipe based on Calcium uptake.</p>
-                
+
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
                     <div class="form-group">
-                        <label>Current Ca (ppm)</label>
+                        <label for="calcCurrentCa">Current Ca (ppm)</label>
                         <input type="number" id="calcCurrentCa" placeholder="...">
                     </div>
                     <div class="form-group">
-                        <label>Target Ca (ppm)</label>
+                        <label for="calcTargetCa">Target Ca (ppm)</label>
                         <input type="number" id="calcTargetCa" value="430">
                     </div>
                 </div>
 
-                <button onclick="calculateDosing()">Calculate Recipe</button>
-                <div id="calc-results"></div>
+                <button id="calcBtn">Calculate Recipe</button>
+                <div id="calc-results" aria-live="polite"></div>
             </div>
         </div>
 
@@ -116,7 +98,7 @@
 
         <div class="card" style="margin-top: 20px;">
             <h2>History (Google Sheets)</h2>
-            <button onclick="loadData()" style="width: auto; float: right; padding: 5px 10px; background: #6c757d; color:white; border:none; border-radius:3px; cursor:pointer;">↻ Refresh</button>
+            <button id="refreshBtn" style="width: auto; float: right; padding: 5px 10px; background: #6c757d; color:white; border:none; border-radius:3px; cursor:pointer;">↻ Refresh</button>
             <table id="historyTable">
                 <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
                 <tbody></tbody>
@@ -124,11 +106,10 @@
         </div>
     </div>
 
-    <div id="instructions" class="tab-content">
+    <div id="instructions" class="tab-content" aria-hidden="true">
         <div class="card highlight" style="margin-bottom: 20px; border-top-color: #6f42c1;">
             <h2>🤖 Hydros Blenny Configuration</h2>
             <p>Setup guide for the 4-head doser using Red Sea Complete Reef Care.</p>
-
             <h3>1. Pump Mapping & Tubing</h3>
             <div class="grid-small">
                 <div class="status-box" style="background:#6f42c1;">
@@ -144,7 +125,6 @@
                     Doser 4<br><strong>Part 4 (Bio)</strong><br><small>0.5x Multiplier</small>
                 </div>
             </div>
-
             <h3>2. Hydros App Settings</h3>
             <table class="info-table">
                 <thead>
@@ -157,7 +137,6 @@
                     <tr><td>Safe Range</td><td>On</td><td>Set max daily limit (e.g. 50ml).</td></tr>
                 </tbody>
             </table>
-
             <h3>3. Schedule Offsets (Precipitation Prevention)</h3>
             <p style="font-size:0.9em; color:#666;">Do not dose Ca and Alk at the exact same moment.</p>
             <table class="info-table">
@@ -176,7 +155,6 @@
         <div class="card">
             <h2>📚 Red Sea Complete Reef Care</h2>
             <p>A 4-part program based on Calcium uptake. All 4 parts are dosed in a fixed ratio.</p>
-
             <h3>1. Recommended Parameters</h3>
             <table class="info-table">
                 <thead>
@@ -188,7 +166,6 @@
                     <tr><td>ULNS / Low Nutrients</td><td>33 ppt</td><td>410 ppm</td><td>7.0 dKH</td></tr>
                 </tbody>
             </table>
-
             <h3>2. Dosing Ratios</h3>
             <p style="font-size:0.9em; color:#666;">The system uses Part 1 (Calcium) as the master dose. All other parts are calculated relative to it.</p>
             <table class="info-table">
@@ -205,206 +182,294 @@
         </div>
     </div>
 
-<script>
+    <!-- Load Chart.js at the end for better performance -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
     // --- ⬇️ CONFIGURATION AREA ⬇️ ---
-    
-    // YOUR GOOGLE SHEETS API URL
-    const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec"; 
-
-    const TANK_GAL = 35; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec";
+    const TANK_GAL = 35;
     const TANK_LITERS = TANK_GAL * 3.78541;
-    const CA_IMPACT_PER_100L = 1.4; 
-    const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
-
+    const CA_IMPACT_PER_100L = 1.4; // ppm per 100L per mL
+    const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); // ppm per mL for this tank
     const RATIO_P2 = 2.0;
     const RATIO_P3 = 0.5;
     const RATIO_P4 = 0.5;
-
     // --- END CONFIGURATION ---
 
     let logs = [];
+    let chartInstance = null;
 
-    function openTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
-        if(btn) btn.classList.add('active');
-    }
-
+    // Cached elements
+    const statusDisplay = document.getElementById('statusDisplay');
+    const historyTbody = document.querySelector('#historyTable tbody');
+    const saveEntryBtn = document.getElementById('saveEntryBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const calcBtn = document.getElementById('calcBtn');
+    const calcResults = document.getElementById('calc-results');
     const dateInput = document.getElementById('date');
-    if(dateInput) dateInput.valueAsDate = new Date();
+    const calcCurrentCaInput = document.getElementById('calcCurrentCa');
+    const calcTargetCaInput = document.getElementById('calcTargetCa');
+    const tankCtx = document.getElementById('tankChart').getContext('2d');
 
-    // --- GOOGLE SHEETS CONNECTION ---
-    async function loadData() {
-        const display = document.getElementById('statusDisplay');
-        // Reset status only if it's the first load or manual refresh
-        if(logs.length === 0) display.innerHTML = '<div class="status-box warn">Loading...</div>';
-        
+    // Helper: safely parse number
+    const toNum = v => {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : null;
+    };
+
+    // Tab navigation
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const id = btn.dataset.target;
+            const target = document.getElementById(id);
+            if(target) {
+                target.classList.add('active');
+                btn.classList.add('active');
+            }
+        });
+    });
+
+    // Init date field
+    if (dateInput) dateInput.valueAsDate = new Date();
+
+    // Event listeners
+    saveEntryBtn.addEventListener('click', submitLog);
+    refreshBtn.addEventListener('click', () => loadData(true));
+    calcBtn.addEventListener('click', calculateDosing);
+
+    // Fetch data from Google Sheets / Apps Script
+    async function loadData(forceRefresh = false) {
+        if (!statusDisplay) return;
+        if (logs.length === 0 || forceRefresh) {
+            statusDisplay.innerHTML = '<div class="status-box warn">Loading...</div>';
+        }
         try {
-            const response = await fetch(API_URL);
-            const data = await response.json();
-            
-            logs = data.map(item => ({
-                date: item.date.toString().split('T')[0],
-                alk: parseFloat(item.alk),
-                ca: parseFloat(item.ca),
-                mg: parseFloat(item.mg),
-                no3: parseFloat(item.no3),
-                po4: parseFloat(item.po4),
-                ph: parseFloat(item.ph)
-            }));
+            const resp = await fetch(API_URL);
+            if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
+            const data = await resp.json();
 
-            // Sort newest last for internal processing
-            logs.sort((a, b) => new Date(a.date) - new Date(b.date));
+            // Map + validate
+            logs = data.map(item => ({
+                date: (item.date || '').toString().split('T')[0],
+                alk: toNum(item.alk),
+                ca: toNum(item.ca),
+                mg: toNum(item.mg),
+                no3: toNum(item.no3),
+                po4: toNum(item.po4),
+                ph: toNum(item.ph)
+            })).filter(Boolean);
+
+            logs.sort((a,b) => new Date(a.date) - new Date(b.date));
             renderAll();
-        } catch (error) {
-            console.error(error);
-            display.innerHTML = '<div class="status-box bad">Connection Failed</div>';
+        } catch (err) {
+            console.error('loadData error', err);
+            // Keep existing logs if available; show failure indicator
+            statusDisplay.innerHTML = '<div class="status-box bad">Connection Failed</div>';
         }
     }
 
-    function addLog() {
-        const btn = document.querySelector('button[onclick="addLog()"]');
+    // Submit new log; tries a proper POST first; falls back to no-cors if blocked by CORS
+    async function submitLog() {
+        const btn = saveEntryBtn;
         const originalText = btn.innerText;
         btn.innerText = "Saving...";
         btn.disabled = true;
 
         const entry = {
-            date: document.getElementById('date').value,
-            alk: document.getElementById('alk').value,
-            ca: document.getElementById('ca').value,
-            mg: document.getElementById('mg').value,
-            no3: document.getElementById('no3').value,
-            po4: document.getElementById('po4').value,
-            ph: document.getElementById('ph').value
+            date: (dateInput.value || '').trim(),
+            alk: document.getElementById('alk').value.trim(),
+            ca: document.getElementById('ca').value.trim(),
+            mg: document.getElementById('mg').value.trim(),
+            no3: document.getElementById('no3').value.trim(),
+            po4: document.getElementById('po4').value.trim(),
+            ph: document.getElementById('ph').value.trim()
         };
 
-        if(!entry.date || !entry.alk) { 
-            alert("Date and Alkalinity are required!"); 
-            btn.innerText = originalText; 
+        if (!entry.date || !entry.alk) {
+            alert("Date and Alkalinity are required!");
+            btn.innerText = originalText;
             btn.disabled = false;
-            return; 
+            return;
         }
 
-        fetch(API_URL, {
-            method: "POST",
-            mode: "no-cors", 
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entry)
-        }).then(() => {
-            alert("Saved to Cloud!");
-            // Optimistic update
-            logs.push({
-                date: entry.date,
-                alk: parseFloat(entry.alk),
-                ca: parseFloat(entry.ca),
-                mg: parseFloat(entry.mg),
-                no3: parseFloat(entry.no3),
-                po4: parseFloat(entry.po4),
-                ph: parseFloat(entry.ph)
+        // Try normal POST (preferred — requires CORS on server)
+        try {
+            const resp = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(entry)
             });
-            renderAll();
-            document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }).catch(err => {
-            alert("Error: " + err);
-            btn.innerText = originalText;
-            btn.disabled = false;
+            if (!resp.ok) throw new Error('Server returned ' + resp.status);
+            // if server returns JSON result, we can use it — otherwise optimistic update
+            try {
+                const saved = await resp.json();
+                // Optionally merge server data if returned (skipped if not)
+            } catch (e) { /* ignore non-json response */ }
+
+            alert("Saved to Cloud!");
+        } catch (err) {
+            // If the failure is likely CORS (TypeError) we fallback to no-cors POST to keep UX working
+            console.warn('POST failed, attempting no-cors fallback', err);
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(entry)
+                });
+                alert("Saved to Cloud (fallback).");
+            } catch (err2) {
+                alert("Error saving: " + err2);
+                console.error('Fallback POST failed', err2);
+                btn.innerText = originalText;
+                btn.disabled = false;
+                return;
+            }
+        }
+
+        // Optimistic UI update
+        logs.push({
+            date: entry.date,
+            alk: toNum(entry.alk),
+            ca: toNum(entry.ca),
+            mg: toNum(entry.mg),
+            no3: toNum(entry.no3),
+            po4: toNum(entry.po4),
+            ph: toNum(entry.ph)
         });
+        renderAll();
+
+        // Clear numeric inputs only
+        document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 
-    // --- VISUALIZATION ---
-    let chartInstance = null;
-
+    // Render all UI parts
     function renderAll() {
         renderTable();
         renderStatus();
         renderChart();
-        if(logs.length > 0) {
+        if (logs.length > 0 && calcCurrentCaInput) {
             const last = logs[logs.length - 1];
-            if(last.ca) document.getElementById('calcCurrentCa').value = last.ca;
+            if (last && toNum(last.ca) !== null) calcCurrentCaInput.value = last.ca;
         }
     }
 
     function renderTable() {
-        const tbody = document.querySelector('#historyTable tbody');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-        [...logs].reverse().forEach(log => {
-            const row = `<tr>
-                <td>${log.date}</td>
-                <td>${log.alk || '-'}</td>
-                <td>${log.ca || '-'}</td>
-                <td>${log.mg || '-'}</td>
-                <td>${log.no3 || '-'}</td>
-                <td>${log.po4 || '-'}</td>
-                <td>${log.ph || '-'}</td>
-            </tr>`;
-            tbody.innerHTML += row;
+        if (!historyTbody) return;
+        // Use fragment to avoid multiple reflows
+        const frag = document.createDocumentFragment();
+        // show newest first
+        [...logs].slice().reverse().forEach(log => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${log.date || '-'}</td>
+                <td>${log.alk ?? '-'}</td>
+                <td>${log.ca ?? '-'}</td>
+                <td>${log.mg ?? '-'}</td>
+                <td>${log.no3 ?? '-'}</td>
+                <td>${log.po4 ?? '-'}</td>
+                <td>${log.ph ?? '-'}</td>
+            `;
+            frag.appendChild(tr);
         });
+        historyTbody.innerHTML = '';
+        historyTbody.appendChild(frag);
     }
 
     function renderStatus() {
+        if (!statusDisplay) return;
         if (logs.length === 0) {
-            document.getElementById('statusDisplay').innerHTML = '<div class="status-box warn">No Data</div>';
+            statusDisplay.innerHTML = '<div class="status-box warn">No Data</div>';
             return;
         }
-        const last = logs[logs.length - 1];
-        const display = document.getElementById('statusDisplay');
-        function getStatus(val, min, max) { return (val >= min && val <= max) ? 'good' : 'bad'; }
+        const last = logs[logs.length-1];
 
-        display.innerHTML = `
-            <div class="status-box ${getStatus(last.alk, 8, 10)}">Alk: ${last.alk || '?'}</div>
-            <div class="status-box ${getStatus(last.ca, 400, 450)}">Ca: ${last.ca || '?'}</div>
-            <div class="status-box ${getStatus(last.no3, 2, 10)}">NO3: ${last.no3 || '?'}</div>
+        const getStatus = (val, min, max) => {
+            if (val === null || val === undefined) return 'warn';
+            if (val >= min && val <= max) return 'good';
+            if (val < min) return 'warn';
+            return 'bad';
+        };
+
+        const alkClass = getStatus(last.alk, 8, 10);
+        const caClass = getStatus(last.ca, 400, 450);
+        const no3Class = getStatus(last.no3, 2, 10);
+
+        statusDisplay.innerHTML = `
+            <div class="status-box ${alkClass}">Alk: ${last.alk ?? '?'}</div>
+            <div class="status-box ${caClass}">Ca: ${last.ca ?? '?'}</div>
+            <div class="status-box ${no3Class}">NO3: ${last.no3 ?? '?'}</div>
         `;
     }
 
     function renderChart() {
-        const ctx = document.getElementById('tankChart').getContext('2d');
-        if (chartInstance) chartInstance.destroy();
-        
-        // Filter datasets to avoid zero-drops
-        const hasAlk = logs.some(l => l.alk);
-        const hasCa = logs.some(l => l.ca);
-        const hasNo3 = logs.some(l => l.no3);
+        const labels = logs.map(l => l.date);
+        const dataAlk = logs.map(l => l.alk);
+        const dataCa = logs.map(l => l.ca);
+        const dataNo3 = logs.map(l => l.no3);
 
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: logs.map(l => l.date),
-                datasets: [
-                    { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#007bff', spanGaps: true, hidden: !hasAlk },
-                    { label: 'Calcium', data: logs.map(l => l.ca), borderColor: '#6f42c1', spanGaps: true, hidden: !hasCa },
-                    { label: 'Nitrate', data: logs.map(l => l.no3), borderColor: '#28a745', spanGaps: true, hidden: !hasNo3 }
-                ]
-            }
+        if (!chartInstance) {
+            chartInstance = new Chart(tankCtx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Alk', data: dataAlk, borderColor: '#007bff', spanGaps: true, hidden: !dataAlk.some(Boolean) },
+                        { label: 'Calcium', data: dataCa, borderColor: '#6f42c1', spanGaps: true, hidden: !dataCa.some(Boolean) },
+                        { label: 'Nitrate', data: dataNo3, borderColor: '#28a745', spanGaps: true, hidden: !dataNo3.some(Boolean) }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top' } },
+                    scales: { x: { display: true }, y: { display: true } }
+                }
+            });
+            // allow canvas height control
+            document.getElementById('tankChart').style.height = '300px';
+            return;
+        }
+
+        // Update data and toggle dataset visibility
+        chartInstance.data.labels = labels;
+        chartInstance.data.datasets[0].data = dataAlk;
+        chartInstance.data.datasets[1].data = dataCa;
+        chartInstance.data.datasets[2].data = dataNo3;
+        chartInstance.data.datasets.forEach(ds => {
+            // hide dataset if all values null/undefined
+            ds.hidden = !(ds.data && ds.data.some(v => v !== null && v !== undefined));
         });
+        chartInstance.update();
     }
 
     // --- CALCULATOR LOGIC ---
     function calculateDosing() {
-        const currentCa = parseFloat(document.getElementById('calcCurrentCa').value);
-        const targetCa = parseFloat(document.getElementById('calcTargetCa').value);
+        const currentCa = toNum(calcCurrentCaInput.value);
+        const targetCa = toNum(calcTargetCaInput.value);
 
-        if (!currentCa || !targetCa) { alert("Please enter Current and Target Calcium."); return; }
-        
+        if (currentCa === null || targetCa === null) {
+            alert("Please enter Current and Target Calcium.");
+            return;
+        }
+
         let dailyP1 = 0;
         let dailyDrop = 0;
-        
-        const caLogs = logs.filter(l => l.ca);
+
+        const caLogs = logs.filter(l => toNum(l.ca) !== null);
         if (caLogs.length >= 2) {
             const curL = caLogs[caLogs.length-1];
             const preL = caLogs[caLogs.length-2];
-            const days = (new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24);
-            
-            if(days > 0) {
-                const caLoss = preL.ca - curL.ca; 
-                dailyDrop = caLoss / days;
-                if (dailyDrop > 0) dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
-            }
+            const days = Math.abs((new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24)) || 1;
+            const caLoss = (preL.ca ?? 0) - (curL.ca ?? 0);
+            dailyDrop = caLoss > 0 ? caLoss / days : 0;
+            if (dailyDrop > 0) dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
         }
 
         const dailyP2 = dailyP1 * RATIO_P2;
@@ -419,18 +484,17 @@
             const totalCorrectionNeeded = gap / CA_IMPACT_FACTOR;
             if (gap > 20) {
                 correctionP1_Daily = totalCorrectionNeeded / 3;
-                correctionMsg = `⚠️ <b>Low Calcium (-${gap} ppm).</b><br>Adding correction dose over 3 days.`;
+                correctionMsg = `⚠️ Low Calcium (-${gap} ppm). Adding correction dose over 3 days.`;
             } else {
                 correctionP1_Daily = totalCorrectionNeeded;
-                correctionMsg = `⚠️ <b>Low Calcium (-${gap} ppm).</b><br>Adding correction dose today.`;
+                correctionMsg = `⚠️ Low Calcium (-${gap} ppm). Adding correction dose today.`;
             }
         }
 
         const totalP1Today = dailyP1 + correctionP1_Daily;
 
-        const resDiv = document.getElementById('calc-results');
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = `
+        calcResults.style.display = 'block';
+        calcResults.innerHTML = `
             <h3>🧪 Red Sea Dosing Plan</h3>
             <p>Daily Consumption: <b>${dailyDrop.toFixed(1)} ppm/day</b></p>
             <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid #ddd;">
@@ -469,7 +533,8 @@
         `;
     }
 
+    // Initial load
     loadData();
-</script>
+    </script>
 </body>
 </html>
