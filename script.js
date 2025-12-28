@@ -69,9 +69,18 @@ chartCheckboxes.forEach(cb => {
 // Fetch data from Google Sheets / Apps Script
 async function loadData(forceRefresh = false) {
     if (!statusDisplay) return;
+    
+    // ⬇️ SPINNER LOGIC ADDED HERE ⬇️
     if (logs.length === 0 || forceRefresh) {
-        statusDisplay.innerHTML = '<div class="status-box warn">Loading...</div>';
+        statusDisplay.innerHTML = `
+            <div style="grid-column: span 3; text-align: center; padding: 20px;">
+                <div class="spinner"></div>
+                <div style="margin-top: 10px; color: #666; font-size: 0.9em;">Syncing with Reef Cloud...</div>
+            </div>
+        `;
     }
+    // ⬆️ END SPINNER LOGIC ⬆️
+
     try {
         const resp = await fetch(API_URL);
         if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
@@ -92,7 +101,7 @@ async function loadData(forceRefresh = false) {
         renderAll();
     } catch (err) {
         console.error('loadData error', err);
-        statusDisplay.innerHTML = '<div class="status-box bad">Connection Failed</div>';
+        statusDisplay.innerHTML = '<div class="status-box bad" style="grid-column: span 3;">Connection Failed</div>';
     }
 }
 
