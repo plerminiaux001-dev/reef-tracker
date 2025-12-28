@@ -39,6 +39,9 @@
         .info-table th { background: #007bff; color: white; text-align: center; }
         .info-table td { text-align: center; border-bottom: 1px solid #eee; }
         .info-table tr:last-child td { border-bottom: none; }
+        
+        /* --- FIX: Container to control Chart Height --- */
+        .chart-container { position: relative; height: 350px; width: 100%; }
     </style>
 </head>
 <body>
@@ -93,7 +96,9 @@
 
         <div class="card">
             <h2>📈 Trends</h2>
-            <canvas id="tankChart"></canvas>
+            <div class="chart-container">
+                <canvas id="tankChart"></canvas>
+            </div>
         </div>
 
         <div class="card" style="margin-top: 20px;">
@@ -182,7 +187,6 @@
         </div>
     </div>
 
-    <!-- Load Chart.js at the end for better performance -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -432,8 +436,7 @@
                     scales: { x: { display: true }, y: { display: true } }
                 }
             });
-            // allow canvas height control
-            document.getElementById('tankChart').style.height = '300px';
+            // FIX: Removed manual JS height setting since CSS .chart-container handles it now
             return;
         }
 
