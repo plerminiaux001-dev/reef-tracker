@@ -130,11 +130,92 @@
     </div>
 
     <div id="instructions" class="tab-content">
-        <div class="card highlight">
-            <h2>Red Sea Complete Reef Care</h2>
-            <p>A 4-part program based on Calcium uptake. All 4 parts are dosed in a fixed ratio.</p>
+        
+        <div class="card highlight" style="margin-bottom: 20px; border-top-color: #6f42c1;">
+            <h2>🤖 Hydros Blenny Configuration</h2>
+            <p>Setup guide for the 4-head doser using Red Sea Complete Reef Care.</p>
 
-            <h3>1. Recommended Parameters</h3>
+            <h3>1. Pump Mapping & Tubing</h3>
+            <div class="grid-small">
+                <div class="status-box" style="background:#6f42c1;">
+                    Doser 1<br><strong>Part 1 (Ca+)</strong><br><small>Master Dose</small>
+                </div>
+                <div class="status-box" style="background:#007bff;">
+                    Doser 2<br><strong>Part 2 (Alk)</strong><br><small>2x Multiplier</small>
+                </div>
+                <div class="status-box" style="background:#20c997;">
+                    Doser 3<br><strong>Part 3 (Iodine)</strong><br><small>0.5x Multiplier</small>
+                </div>
+                <div class="status-box" style="background:#ffc107; color:#333;">
+                    Doser 4<br><strong>Part 4 (Bio)</strong><br><small>0.5x Multiplier</small>
+                </div>
+            </div>
+
+            <h3>2. Hydros App Settings</h3>
+            <table class="info-table">
+                <thead>
+                    <tr><th>Setting</th><th>Value</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Output Type</strong></td>
+                        <td>Dosing Pump</td>
+                        <td>Create 4 separate outputs in the Hydros App.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dosing Mode</strong></td>
+                        <td>Schedule (Simple)</td>
+                        <td>Allows you to break the dose into multiple small amounts per day.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flow Rate</strong></td>
+                        <td><em>Must Calibrate</em></td>
+                        <td>Run the Hydros "Calibrate" wizard for each pump using a graduated cylinder.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Safe Range</strong></td>
+                        <td>On</td>
+                        <td>Set a max daily limit (e.g., 50ml) to prevent overdose if logic fails.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>3. Schedule Offsets (Precipitation Prevention)</h3>
+            <p style="font-size:0.9em; color:#666;">Do not dose Part 1 (Calcium) and Part 2 (Alk) at the exact same moment. Offset them by at least 15 minutes.</p>
+            <table class="info-table">
+                <thead>
+                    <tr><th>Pump</th><th>Start Time</th><th>Dosage Calculation</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Doser 1</strong> (Ca)</td>
+                        <td>00:00 (Midnight)</td>
+                        <td>Set manually based on "Total Today" in Dashboard.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Doser 2</strong> (Alk)</td>
+                        <td>00:30</td>
+                        <td><strong>2.0 x</strong> [Doser 1 Amount]</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Doser 3</strong> (Trace)</td>
+                        <td>01:00</td>
+                        <td><strong>0.5 x</strong> [Doser 1 Amount]</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Doser 4</strong> (Trace)</td>
+                        <td>01:30</td>
+                        <td><strong>0.5 x</strong> [Doser 1 Amount]</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>📚 Reference: Red Sea Manual</h2>
+            <p>A 4-part program based on Calcium uptake.</p>
+
+            <h3>Recommended Parameters</h3>
             <table class="info-table">
                 <thead>
                     <tr><th>Type</th><th>Salinity</th><th>Calcium</th><th>Alkalinity</th></tr>
@@ -142,21 +223,20 @@
                 <tbody>
                     <tr><td>Mixed Reef</td><td>34 ppt</td><td>450 ppm</td><td>11.5 dKH</td></tr>
                     <tr><td>SPS Dominant</td><td>35 ppt</td><td>430 ppm</td><td>8.0 dKH</td></tr>
-                    <tr><td>ULNS / Low Nutrients</td><td>33 ppt</td><td>410 ppm</td><td>7.0 dKH</td></tr>
+                    <tr><td>ULNS</td><td>33 ppt</td><td>410 ppm</td><td>7.0 dKH</td></tr>
                 </tbody>
             </table>
 
-            <h3>2. Dosing Ratios</h3>
-            <p style="font-size:0.9em; color:#666;">The system uses Part 1 (Calcium) as the master dose. All other parts are calculated relative to it.</p>
+            <h3>Dosing Ratios</h3>
             <table class="info-table">
                 <thead>
-                    <tr><th>Supplement</th><th>Ratio</th><th>Dose per 1mL of Part 1</th></tr>
+                    <tr><th>Supplement</th><th>Ratio</th><th>Calculation</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td><b>Part 1</b> (Ca & Mg)</td><td>1.0</td><td>1 mL</td></tr>
-                    <tr><td><b>Part 2</b> (Alk & pH)</td><td>2.0</td><td>2 mL</td></tr>
-                    <tr><td><b>Part 3</b> (Iodine & K)</td><td>0.5</td><td>0.5 mL</td></tr>
-                    <tr><td><b>Part 4</b> (Iron & Bio)</td><td>0.5</td><td>0.5 mL</td></tr>
+                    <tr><td><b>Part 1</b> (Ca & Mg)</td><td>1.0</td><td>Base Dose</td></tr>
+                    <tr><td><b>Part 2</b> (Alk & pH)</td><td>2.0</td><td>2mL per 1mL of Part 1</td></tr>
+                    <tr><td><b>Part 3</b> (Iodine & K)</td><td>0.5</td><td>0.5mL per 1mL of Part 1</td></tr>
+                    <tr><td><b>Part 4</b> (Iron & Bio)</td><td>0.5</td><td>0.5mL per 1mL of Part 1</td></tr>
                 </tbody>
             </table>
         </div>
