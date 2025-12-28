@@ -1,0 +1,4 @@
+:root { --bg: #f4f4f9; --card: #ffffff; --primary: #007bff; --text: #333; --active-tab: #0056b3; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
+/* ... (Paste the rest of your CSS here) ... */
+.chart-check-label input { width: auto; margin: 0; }
