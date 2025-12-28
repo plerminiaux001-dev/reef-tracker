@@ -4,9 +4,21 @@ const TANK_GAL = 35;
 const TANK_LITERS = TANK_GAL * 3.78541;
 const CA_IMPACT_PER_100L = 1.4; // ppm per 100L per mL
 const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); // ppm per mL for this tank
+
+// Dosing Multipliers (Relative to Calcium)
 const RATIO_P2 = 2.0;
 const RATIO_P3 = 0.5;
 const RATIO_P4 = 0.5;
+
+// 🎨 SAFE RANGES (Edit these to match your reef goals)
+const RANGES = {
+    alk: { min: 8.0, max: 10.0 },
+    ca:  { min: 400, max: 460 },
+    mg:  { min: 1250, max: 1450 },
+    no3: { min: 1,   max: 15 },
+    po4: { min: 0.02, max: 0.1 },
+    ph:  { min: 8.0, max: 8.4 }
+};
 // --- END CONFIGURATION ---
 
 let logs = [];
@@ -29,6 +41,24 @@ const chartCheckboxes = document.querySelectorAll('.chart-check-label input');
 const toNum = v => {
     const n = parseFloat(v);
     return Number.isFinite(n) ? n : null;
+};
+
+// Helper: Determine color class based on value
+// Returns: 'good' (Green), 'warn' (Yellow), 'bad' (Red), or '' (None)
+const getStatusClass = (type, val) => {
+    if (val === null || val === undefined) return '';
+    const range = RANGES[type];
+    if (!range) return ''; // No range defined for this type
+
+    // Perfect Range = Green
+    if (val >= range.min && val <= range.max) return 'good';
+    
+    // Slight deviation (10% off) = Yellow
+    const buffer = (range.max - range.min) * 0.5; 
+    if (val >= range.min - buffer && val <= range.max + buffer) return 'warn';
+    
+    // Way off = Red
+    return 'bad';
 };
 
 // Tab navigation
@@ -59,18 +89,16 @@ chartCheckboxes.forEach(cb => {
         if(chartInstance) {
             const idx = parseInt(cb.dataset.idx);
             const isChecked = cb.checked;
-            // Toggle dataset visibility
             chartInstance.data.datasets[idx].hidden = !isChecked;
             chartInstance.update();
         }
     });
 });
 
-// Fetch data from Google Sheets / Apps Script
+// Fetch data
 async function loadData(forceRefresh = false) {
     if (!statusDisplay) return;
     
-    // ⬇️ SPINNER LOGIC ADDED HERE ⬇️
     if (logs.length === 0 || forceRefresh) {
         statusDisplay.innerHTML = `
             <div style="grid-column: span 3; text-align: center; padding: 20px;">
@@ -79,14 +107,12 @@ async function loadData(forceRefresh = false) {
             </div>
         `;
     }
-    // ⬆️ END SPINNER LOGIC ⬆️
 
     try {
         const resp = await fetch(API_URL);
         if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
         const data = await resp.json();
 
-        // Map + validate
         logs = data.map(item => ({
             date: (item.date || '').toString().split('T')[0],
             alk: toNum(item.alk),
@@ -105,7 +131,7 @@ async function loadData(forceRefresh = false) {
     }
 }
 
-// Submit new log
+// Submit log
 async function submitLog() {
     const btn = saveEntryBtn;
     const originalText = btn.innerText;
@@ -157,7 +183,6 @@ async function submitLog() {
         }
     }
 
-    // Optimistic UI update
     logs.push({
         date: entry.date,
         alk: toNum(entry.alk),
@@ -187,16 +212,27 @@ function renderAll() {
 function renderTable() {
     if (!historyTbody) return;
     const frag = document.createDocumentFragment();
+    
+    // Copy array and reverse to show newest first
     [...logs].slice().reverse().forEach(log => {
         const tr = document.createElement('tr');
+        
+        // Helper to create TD with dynamic class
+        const mkCell = (type, val) => {
+            const cls = getStatusClass(type, val);
+            // If class is good/bad, add white text style. If warn, text is usually dark.
+            const style = (cls === 'good' || cls === 'bad') ? 'color: white;' : '';
+            return `<td class="${cls}" style="${style}">${val ?? '-'}</td>`;
+        };
+
         tr.innerHTML = `
             <td>${log.date || '-'}</td>
-            <td>${log.alk ?? '-'}</td>
-            <td>${log.ca ?? '-'}</td>
-            <td>${log.mg ?? '-'}</td>
-            <td>${log.no3 ?? '-'}</td>
-            <td>${log.po4 ?? '-'}</td>
-            <td>${log.ph ?? '-'}</td>
+            ${mkCell('alk', log.alk)}
+            ${mkCell('ca', log.ca)}
+            ${mkCell('mg', log.mg)}
+            ${mkCell('no3', log.no3)}
+            ${mkCell('po4', log.po4)}
+            ${mkCell('ph', log.ph)}
         `;
         frag.appendChild(tr);
     });
@@ -212,16 +248,10 @@ function renderStatus() {
     }
     const last = logs[logs.length-1];
 
-    const getStatus = (val, min, max) => {
-        if (val === null || val === undefined) return 'warn';
-        if (val >= min && val <= max) return 'good';
-        if (val < min) return 'warn';
-        return 'bad';
-    };
-
-    const alkClass = getStatus(last.alk, 8, 10);
-    const caClass = getStatus(last.ca, 400, 450);
-    const no3Class = getStatus(last.no3, 2, 10);
+    // Reuse the new getStatusClass helper
+    const alkClass = getStatusClass('alk', last.alk);
+    const caClass = getStatusClass('ca', last.ca);
+    const no3Class = getStatusClass('no3', last.no3);
 
     statusDisplay.innerHTML = `
         <div class="status-box ${alkClass}">Alk: ${last.alk ?? '?'}</div>
@@ -233,118 +263,37 @@ function renderStatus() {
 function renderChart() {
     const labels = logs.map(l => l.date);
     
-    // Dataset Order MUST match HTML checkbox "data-idx" order:
-    // 0: Alk, 1: Ca, 2: Mg, 3: NO3, 4: PO4, 5: pH
     const datasets = [
-        // 0. Alk (Left Axis)
-        { 
-            label: 'Alk', 
-            data: logs.map(l => l.alk), 
-            borderColor: '#007bff', 
-            backgroundColor: '#007bff', 
-            yAxisID: 'y',
-            spanGaps: true 
-        },
-        // 1. Ca (Right Axis)
-        { 
-            label: 'Ca',  
-            data: logs.map(l => l.ca),  
-            borderColor: '#6f42c1', 
-            backgroundColor: '#6f42c1', 
-            yAxisID: 'y1',
-            spanGaps: true 
-        },
-        // 2. Mg (Right Axis)
-        { 
-            label: 'Mg',  
-            data: logs.map(l => l.mg),  
-            borderColor: '#fd7e14', 
-            backgroundColor: '#fd7e14', 
-            yAxisID: 'y1',
-            spanGaps: true 
-        },
-        // 3. NO3 (Left Axis)
-        { 
-            label: 'NO3', 
-            data: logs.map(l => l.no3), 
-            borderColor: '#28a745', 
-            backgroundColor: '#28a745', 
-            yAxisID: 'y',
-            spanGaps: true 
-        },
-        // 4. PO4 (Left Axis)
-        { 
-            label: 'PO4', 
-            data: logs.map(l => l.po4), 
-            borderColor: '#20c997', 
-            backgroundColor: '#20c997', 
-            yAxisID: 'y',
-            spanGaps: true 
-        },
-        // 5. pH (Left Axis)
-        { 
-            label: 'pH',  
-            data: logs.map(l => l.ph),  
-            borderColor: '#dc3545', 
-            backgroundColor: '#dc3545', 
-            yAxisID: 'y',
-            spanGaps: true 
-        }
+        { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#007bff', backgroundColor: '#007bff', yAxisID: 'y', spanGaps: true },
+        { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#6f42c1', backgroundColor: '#6f42c1', yAxisID: 'y1', spanGaps: true },
+        { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#fd7e14', backgroundColor: '#fd7e14', yAxisID: 'y1', spanGaps: true },
+        { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#28a745', backgroundColor: '#28a745', yAxisID: 'y', spanGaps: true },
+        { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#20c997', backgroundColor: '#20c997', yAxisID: 'y', spanGaps: true },
+        { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#dc3545', backgroundColor: '#dc3545', yAxisID: 'y', spanGaps: true }
     ];
 
-    // If chart exists, update data
     if (chartInstance) {
         chartInstance.data.labels = labels;
-        datasets.forEach((ds, i) => {
-            chartInstance.data.datasets[i].data = ds.data;
-        });
+        datasets.forEach((ds, i) => { chartInstance.data.datasets[i].data = ds.data; });
         chartInstance.update();
         return;
     }
 
-    // Initialize chart
     chartInstance = new Chart(tankCtx, {
         type: 'line',
-        data: {
-            labels,
-            datasets: datasets
-        },
+        data: { labels, datasets },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            plugins: { 
-                legend: { display: false } 
-            },
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false } },
             scales: {
-                x: { 
-                    display: true,
-                    grid: { color: '#eee' }
-                },
-                // LEFT AXIS (Small numbers)
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: { display: true, text: 'Alk / pH / Nutrients' },
-                    grid: { color: '#eee' }
-                },
-                // RIGHT AXIS (Big numbers)
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: { display: true, text: 'Calcium / Magnesium' },
-                    grid: { drawOnChartArea: false } // Cleaner look
-                },
+                x: { display: true, grid: { color: '#eee' } },
+                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Alk / pH / Nutrients' }, grid: { color: '#eee' } },
+                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Calcium / Magnesium' }, grid: { drawOnChartArea: false } },
             }
         }
     });
 
-    // Set initial visibility based on checked boxes
     chartCheckboxes.forEach((cb, idx) => {
         chartInstance.data.datasets[idx].hidden = !cb.checked;
     });
