@@ -35,7 +35,7 @@
         input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
         button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
         button:hover { background: #0056b3; }
-        button.delete { background: #dc3545; margin-top: 10px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
 
         /* Status Indicators */
         .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -46,7 +46,6 @@
 
         /* Calculator Output */
         #calc-results { margin-top: 20px; padding: 15px; background: #e9ecef; border-left: 5px solid #007bff; display: none; }
-        .calc-highlight { font-weight: bold; color: #d63384; }
         
         /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -58,10 +57,6 @@
         .info-table th { background: #007bff; color: white; text-align: center; }
         .info-table td { text-align: center; border-bottom: 1px solid #eee; }
         .info-table tr:last-child td { border-bottom: none; }
-
-        /* Recipe Table */
-        .recipe-table td { font-weight: bold; color: #555; }
-        .recipe-table td:last-child { color: var(--primary); font-size: 1.1em; text-align: right; }
     </style>
 </head>
 <body>
@@ -77,7 +72,7 @@
         <div class="card" style="margin-bottom: 20px;">
             <h2>Current Status</h2>
             <div class="status-grid" id="statusDisplay">
-                <div class="status-box warn">No Data</div>
+                <div class="status-box warn">Loading Cloud Data...</div>
             </div>
         </div>
 
@@ -120,8 +115,8 @@
         </div>
 
         <div class="card" style="margin-top: 20px;">
-            <h2>History</h2>
-            <button class="delete" onclick="clearData()" style="width: auto; float: right; padding: 5px 10px;">Clear All Data</button>
+            <h2>History (Google Sheets)</h2>
+            <button onclick="loadData()" style="width: auto; float: right; padding: 5px 10px; background: #6c757d; color:white; border:none; border-radius:3px; cursor:pointer;">↻ Refresh</button>
             <table id="historyTable">
                 <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
                 <tbody></tbody>
@@ -130,23 +125,22 @@
     </div>
 
     <div id="instructions" class="tab-content">
-        
         <div class="card highlight" style="margin-bottom: 20px; border-top-color: #6f42c1;">
             <h2>🤖 Hydros Blenny Configuration</h2>
             <p>Setup guide for the 4-head doser using Red Sea Complete Reef Care.</p>
 
             <h3>1. Pump Mapping & Tubing</h3>
             <div class="grid-small">
-                <div class="status-box" style="background:#f5ed02;">
+                <div class="status-box" style="background:#6f42c1;">
                     Doser 1<br><strong>Part 1 (Ca+)</strong><br><small>Master Dose</small>
                 </div>
-                <div class="status-box" style="background:#e8130c;">
+                <div class="status-box" style="background:#007bff;">
                     Doser 2<br><strong>Part 2 (Alk)</strong><br><small>2x Multiplier</small>
                 </div>
-                <div class="status-box" style="background:#3e9e23;">
+                <div class="status-box" style="background:#20c997;">
                     Doser 3<br><strong>Part 3 (Iodine)</strong><br><small>0.5x Multiplier</small>
                 </div>
-                <div class="status-box" style="background:#2370cf; color:#333;">
+                <div class="status-box" style="background:#ffc107; color:#333;">
                     Doser 4<br><strong>Part 4 (Bio)</strong><br><small>0.5x Multiplier</small>
                 </div>
             </div>
@@ -157,157 +151,148 @@
                     <tr><th>Setting</th><th>Value</th><th>Notes</th></tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><strong>Output Type</strong></td>
-                        <td>Dosing Pump</td>
-                        <td>Create 4 separate outputs in the Hydros App.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Dosing Mode</strong></td>
-                        <td>Schedule (Simple)</td>
-                        <td>Allows you to break the dose into multiple small amounts per day.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Flow Rate</strong></td>
-                        <td><em>Must Calibrate</em></td>
-                        <td>Run the Hydros "Calibrate" wizard for each pump using a graduated cylinder.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Safe Range</strong></td>
-                        <td>On</td>
-                        <td>Set a max daily limit (e.g., 50ml) to prevent overdose if logic fails.</td>
-                    </tr>
+                    <tr><td>Output Type</td><td>Dosing Pump</td><td>Create 4 separate outputs.</td></tr>
+                    <tr><td>Dosing Mode</td><td>Schedule (Simple)</td><td>Spreads dose over 24h.</td></tr>
+                    <tr><td>Flow Rate</td><td><em>Calibrate!</em></td><td>Run calibration for each head.</td></tr>
+                    <tr><td>Safe Range</td><td>On</td><td>Set max daily limit (e.g. 50ml).</td></tr>
                 </tbody>
             </table>
 
             <h3>3. Schedule Offsets (Precipitation Prevention)</h3>
-            <p style="font-size:0.9em; color:#666;">Do not dose Part 1 (Calcium) and Part 2 (Alk) at the exact same moment. Offset them by at least 15 minutes.</p>
+            <p style="font-size:0.9em; color:#666;">Do not dose Ca and Alk at the exact same moment.</p>
             <table class="info-table">
                 <thead>
-                    <tr><th>Pump</th><th>Start Time</th><th>Dosage Calculation</th></tr>
+                    <tr><th>Pump</th><th>Start Time</th><th>Dosage Formula</th></tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><strong>Doser 1</strong> (Ca)</td>
-                        <td>00:00 (Midnight)</td>
-                        <td>Set manually based on "Total Today" in Dashboard.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Doser 2</strong> (Alk)</td>
-                        <td>00:30</td>
-                        <td><strong>2.0 x</strong> [Doser 1 Amount]</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Doser 3</strong> (Trace)</td>
-                        <td>01:00</td>
-                        <td><strong>0.5 x</strong> [Doser 1 Amount]</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Doser 4</strong> (Trace)</td>
-                        <td>01:30</td>
-                        <td><strong>0.5 x</strong> [Doser 1 Amount]</td>
-                    </tr>
+                    <tr><td><strong>Doser 1</strong> (Ca)</td><td>00:00</td><td>Base Amount (From Calculator)</td></tr>
+                    <tr><td><strong>Doser 2</strong> (Alk)</td><td>00:30</td><td>2.0 x [Doser 1]</td></tr>
+                    <tr><td><strong>Doser 3</strong> (Trace)</td><td>01:00</td><td>0.5 x [Doser 1]</td></tr>
+                    <tr><td><strong>Doser 4</strong> (Trace)</td><td>01:30</td><td>0.5 x [Doser 1]</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="card">
-            <h2>📚 Reference: Red Sea Manual</h2>
-            <p>A 4-part program based on Calcium uptake.</p>
-
-            <h3>Recommended Parameters</h3>
+            <h2>📚 Red Sea Manual Reference</h2>
             <table class="info-table">
-                <thead>
-                    <tr><th>Type</th><th>Salinity</th><th>Calcium</th><th>Alkalinity</th></tr>
-                </thead>
+                <thead><tr><th>Type</th><th>Salinity</th><th>Calcium</th><th>Alkalinity</th></tr></thead>
                 <tbody>
                     <tr><td>Mixed Reef</td><td>34 ppt</td><td>450 ppm</td><td>11.5 dKH</td></tr>
                     <tr><td>SPS Dominant</td><td>35 ppt</td><td>430 ppm</td><td>8.0 dKH</td></tr>
-                    <tr><td>ULNS</td><td>33 ppt</td><td>410 ppm</td><td>7.0 dKH</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Dosing Ratios</h3>
-            <table class="info-table">
-                <thead>
-                    <tr><th>Supplement</th><th>Ratio</th><th>Calculation</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td><b>Part 1</b> (Ca & Mg)</td><td>1.0</td><td>Base Dose</td></tr>
-                    <tr><td><b>Part 2</b> (Alk & pH)</td><td>2.0</td><td>2mL per 1mL of Part 1</td></tr>
-                    <tr><td><b>Part 3</b> (Iodine & K)</td><td>0.5</td><td>0.5mL per 1mL of Part 1</td></tr>
-                    <tr><td><b>Part 4</b> (Iron & Bio)</td><td>0.5</td><td>0.5mL per 1mL of Part 1</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
 <script>
-    // --- TABS LOGIC ---
+    // --- ⬇️ CONFIGURATION AREA ⬇️ ---
+    
+    // YOUR GOOGLE SHEETS API URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec"; 
+
+    const TANK_GAL = 35; 
+    const TANK_LITERS = TANK_GAL * 3.78541;
+    const CA_IMPACT_PER_100L = 1.4; 
+    const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
+
+    const RATIO_P2 = 2.0;
+    const RATIO_P3 = 0.5;
+    const RATIO_P4 = 0.5;
+
+    // --- END CONFIGURATION ---
+
+    let logs = [];
+
     function openTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
         if(btn) btn.classList.add('active');
     }
 
-    // --- CONFIGURATION ---
-    const TANK_GAL = 35; 
-    const TANK_LITERS = TANK_GAL * 3.78541; // ~132.5 Liters
-
-    // IMPACT FACTOR (Based on Red Sea Manual)
-    // 1ml of Part 1 raises 100 Liters by 1.4 ppm.
-    const CA_IMPACT_PER_100L = 1.4; 
-    const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
-    // Result: 1ml raises your 35g tank by ~1.056 ppm Ca
-
-    // DOSING RATIOS (Based on Red Sea Manual)
-    // Ratio is 1 : 2 : 0.5 : 0.5
-    const RATIO_P2 = 2.0;
-    const RATIO_P3 = 0.5;
-    const RATIO_P4 = 0.5;
-
-    // --- APP LOGIC ---
-    let logs = JSON.parse(localStorage.getItem('reefLogs')) || [];
     const dateInput = document.getElementById('date');
     if(dateInput) dateInput.valueAsDate = new Date();
 
-    function saveToStorage() {
-        logs.sort((a, b) => new Date(a.date) - new Date(b.date));
-        localStorage.setItem('reefLogs', JSON.stringify(logs));
-        renderAll();
+    // --- GOOGLE SHEETS CONNECTION ---
+    async function loadData() {
+        const display = document.getElementById('statusDisplay');
+        // Reset status only if it's the first load or manual refresh
+        if(logs.length === 0) display.innerHTML = '<div class="status-box warn">Loading...</div>';
+        
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            logs = data.map(item => ({
+                date: item.date.toString().split('T')[0],
+                alk: parseFloat(item.alk),
+                ca: parseFloat(item.ca),
+                mg: parseFloat(item.mg),
+                no3: parseFloat(item.no3),
+                po4: parseFloat(item.po4),
+                ph: parseFloat(item.ph)
+            }));
+
+            // Sort newest last for internal processing
+            logs.sort((a, b) => new Date(a.date) - new Date(b.date));
+            renderAll();
+        } catch (error) {
+            console.error(error);
+            display.innerHTML = '<div class="status-box bad">Connection Failed</div>';
+        }
     }
 
     function addLog() {
+        const btn = document.querySelector('button[onclick="addLog()"]');
+        const originalText = btn.innerText;
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
         const entry = {
             date: document.getElementById('date').value,
-            alk: parseFloat(document.getElementById('alk').value),
-            ca: parseFloat(document.getElementById('ca').value),
-            mg: parseFloat(document.getElementById('mg').value),
-            no3: parseFloat(document.getElementById('no3').value),
-            po4: parseFloat(document.getElementById('po4').value),
-            ph: parseFloat(document.getElementById('ph').value)
+            alk: document.getElementById('alk').value,
+            ca: document.getElementById('ca').value,
+            mg: document.getElementById('mg').value,
+            no3: document.getElementById('no3').value,
+            po4: document.getElementById('po4').value,
+            ph: document.getElementById('ph').value
         };
 
-        if(!entry.date || !entry.alk) { alert("Date and Alkalinity are required!"); return; }
-        
-        logs.push(entry);
-        saveToStorage();
-        document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
-        document.getElementById('calcTargetCa').value = "430";
-    }
-
-    function clearData() {
-        if(confirm("Are you sure you want to delete all history?")) {
-            localStorage.removeItem('reefLogs');
-            logs = [];
-            renderAll();
+        if(!entry.date || !entry.alk) { 
+            alert("Date and Alkalinity are required!"); 
+            btn.innerText = originalText; 
+            btn.disabled = false;
+            return; 
         }
+
+        fetch(API_URL, {
+            method: "POST",
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entry)
+        }).then(() => {
+            alert("Saved to Cloud!");
+            // Optimistic update
+            logs.push({
+                date: entry.date,
+                alk: parseFloat(entry.alk),
+                ca: parseFloat(entry.ca),
+                mg: parseFloat(entry.mg),
+                no3: parseFloat(entry.no3),
+                po4: parseFloat(entry.po4),
+                ph: parseFloat(entry.ph)
+            });
+            renderAll();
+            document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }).catch(err => {
+            alert("Error: " + err);
+            btn.innerText = originalText;
+            btn.disabled = false;
+        });
     }
 
     // --- VISUALIZATION ---
@@ -330,87 +315,88 @@
         [...logs].reverse().forEach(log => {
             const row = `<tr>
                 <td>${log.date}</td>
-                <td>${log.alk}</td>
-                <td>${log.ca}</td>
-                <td>${log.mg}</td>
-                <td>${log.no3}</td>
-                <td>${log.po4}</td>
-                <td>${log.ph}</td>
+                <td>${log.alk || '-'}</td>
+                <td>${log.ca || '-'}</td>
+                <td>${log.mg || '-'}</td>
+                <td>${log.no3 || '-'}</td>
+                <td>${log.po4 || '-'}</td>
+                <td>${log.ph || '-'}</td>
             </tr>`;
             tbody.innerHTML += row;
         });
     }
 
     function renderStatus() {
-        if (logs.length === 0) return;
+        if (logs.length === 0) {
+            document.getElementById('statusDisplay').innerHTML = '<div class="status-box warn">No Data</div>';
+            return;
+        }
         const last = logs[logs.length - 1];
         const display = document.getElementById('statusDisplay');
         function getStatus(val, min, max) { return (val >= min && val <= max) ? 'good' : 'bad'; }
 
         display.innerHTML = `
-            <div class="status-box ${getStatus(last.alk, 8, 10)}">Alk: ${last.alk}</div>
-            <div class="status-box ${getStatus(last.ca, 400, 450)}">Ca: ${last.ca}</div>
-            <div class="status-box ${getStatus(last.no3, 2, 10)}">NO3: ${last.no3}</div>
+            <div class="status-box ${getStatus(last.alk, 8, 10)}">Alk: ${last.alk || '?'}</div>
+            <div class="status-box ${getStatus(last.ca, 400, 450)}">Ca: ${last.ca || '?'}</div>
+            <div class="status-box ${getStatus(last.no3, 2, 10)}">NO3: ${last.no3 || '?'}</div>
         `;
     }
 
     function renderChart() {
         const ctx = document.getElementById('tankChart').getContext('2d');
         if (chartInstance) chartInstance.destroy();
+        
+        // Filter datasets to avoid zero-drops
+        const hasAlk = logs.some(l => l.alk);
+        const hasCa = logs.some(l => l.ca);
+        const hasNo3 = logs.some(l => l.no3);
+
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: logs.map(l => l.date),
                 datasets: [
-                    { label: 'Alk (dKH)', data: logs.map(l => l.alk), borderColor: '#007bff', tension: 0.1 },
-                    { label: 'Calcium (ppm)', data: logs.map(l => l.ca), borderColor: '#6f42c1', tension: 0.1 },
-                    { label: 'Nitrate (ppm)', data: logs.map(l => l.no3), borderColor: '#28a745', tension: 0.1 }
+                    { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#007bff', spanGaps: true, hidden: !hasAlk },
+                    { label: 'Calcium', data: logs.map(l => l.ca), borderColor: '#6f42c1', spanGaps: true, hidden: !hasCa },
+                    { label: 'Nitrate', data: logs.map(l => l.no3), borderColor: '#28a745', spanGaps: true, hidden: !hasNo3 }
                 ]
             }
         });
     }
 
-    // --- NEW SPLIT TABLE DOSING CALCULATOR ---
+    // --- CALCULATOR LOGIC ---
     function calculateDosing() {
-        // 1. Get Inputs
         const currentCa = parseFloat(document.getElementById('calcCurrentCa').value);
         const targetCa = parseFloat(document.getElementById('calcTargetCa').value);
 
         if (!currentCa || !targetCa) { alert("Please enter Current and Target Calcium."); return; }
         
-        // 2. Calculate Daily Consumption (If possible)
         let dailyP1 = 0;
         let dailyDrop = 0;
         
-        if (logs.length >= 2) {
-            const curL = logs[logs.length-1];
-            const preL = logs[logs.length-2];
+        const caLogs = logs.filter(l => l.ca);
+        if (caLogs.length >= 2) {
+            const curL = caLogs[caLogs.length-1];
+            const preL = caLogs[caLogs.length-2];
             const days = (new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24);
             
-            if(days > 0 && curL.ca && preL.ca) {
+            if(days > 0) {
                 const caLoss = preL.ca - curL.ca; 
                 dailyDrop = caLoss / days;
-                // If drop is positive (consumption), calc dose. If negative (rising), dose is 0.
-                if (dailyDrop > 0) {
-                    dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
-                }
+                if (dailyDrop > 0) dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
             }
         }
 
-        // 3. Calculate Daily Ratios for Parts 2, 3, 4
         const dailyP2 = dailyP1 * RATIO_P2;
         const dailyP3 = dailyP1 * RATIO_P3;
         const dailyP4 = dailyP1 * RATIO_P4;
 
-        // 4. Calculate Correction (Part 1 ONLY)
         const gap = targetCa - currentCa;
         let correctionP1_Daily = 0;
         let correctionMsg = "✅ Levels match target.";
 
-        if (gap > 5) { // Only correct if gap is meaningful
+        if (gap > 5) {
             const totalCorrectionNeeded = gap / CA_IMPACT_FACTOR;
-            
-            // If gap is large (>20ppm), split over 3 days. Otherwise, do it today.
             if (gap > 20) {
                 correctionP1_Daily = totalCorrectionNeeded / 3;
                 correctionMsg = `⚠️ <b>Low Calcium (-${gap} ppm).</b><br>Adding correction dose over 3 days.`;
@@ -418,11 +404,8 @@
                 correctionP1_Daily = totalCorrectionNeeded;
                 correctionMsg = `⚠️ <b>Low Calcium (-${gap} ppm).</b><br>Adding correction dose today.`;
             }
-        } else if (gap < -5) {
-             correctionMsg = `🛑 <b>High Calcium.</b> Skip Part 1 until levels drop.`;
         }
 
-        // 5. Render Split Table
         const totalP1Today = dailyP1 + correctionP1_Daily;
 
         const resDiv = document.getElementById('calc-results');
@@ -430,44 +413,43 @@
         resDiv.innerHTML = `
             <h3>🧪 Red Sea Dosing Plan</h3>
             <p>Daily Consumption: <b>${dailyDrop.toFixed(1)} ppm/day</b></p>
-            
             <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid #ddd;">
                 <tr style="background:#f0f0f0; font-weight:bold;">
-                    <td style="padding:8px; border:1px solid #ddd;">Product</td>
-                    <td style="padding:8px; border:1px solid #ddd;">Daily Base<br><span style="font-size:0.8em; font-weight:normal">(Forever)</span></td>
-                    <td style="padding:8px; border:1px solid #ddd; color:#d63384;">Correction<br><span style="font-size:0.8em; font-weight:normal">(3 Days Only)</span></td>
-                    <td style="padding:8px; border:1px solid #ddd; background:#e3f2fd;">TOTAL TODAY</td>
+                    <td style="padding:8px;">Product</td>
+                    <td style="padding:8px;">Base</td>
+                    <td style="padding:8px; color:#d63384;">Corr.</td>
+                    <td style="padding:8px; background:#e3f2fd;">TOTAL</td>
                 </tr>
                 <tr>
-                    <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 1</b> (Ca)</td>
-                    <td style="border:1px solid #ddd;">${dailyP1.toFixed(1)} mL</td>
-                    <td style="border:1px solid #ddd; color:#d63384; font-weight:bold;">+ ${correctionP1_Daily.toFixed(1)} mL</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd; font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
+                    <td style="text-align:left; padding:8px;"><b>Part 1</b> (Ca)</td>
+                    <td>${dailyP1.toFixed(1)}</td>
+                    <td style="color:#d63384;">+ ${correctionP1_Daily.toFixed(1)}</td>
+                    <td style="background:#e3f2fd; font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
                 </tr>
                 <tr>
-                    <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 2</b> (Alk)</td>
-                    <td style="border:1px solid #ddd;">${dailyP2.toFixed(1)} mL</td>
-                    <td style="border:1px solid #ddd; color:#ccc;">-</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd;">${dailyP2.toFixed(1)} mL</td>
+                    <td style="text-align:left; padding:8px;"><b>Part 2</b> (Alk)</td>
+                    <td>${dailyP2.toFixed(1)}</td>
+                    <td>-</td>
+                    <td style="background:#e3f2fd;">${dailyP2.toFixed(1)} mL</td>
                 </tr>
                 <tr>
-                    <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 3</b> (Iodine)</td>
-                    <td style="border:1px solid #ddd;">${dailyP3.toFixed(1)} mL</td>
-                    <td style="border:1px solid #ddd; color:#ccc;">-</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd;">${dailyP3.toFixed(1)} mL</td>
+                    <td style="text-align:left; padding:8px;"><b>Part 3</b> (Iodine)</td>
+                    <td>${dailyP3.toFixed(1)}</td>
+                    <td>-</td>
+                    <td style="background:#e3f2fd;">${dailyP3.toFixed(1)} mL</td>
                 </tr>
                 <tr>
-                    <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 4</b> (Bio)</td>
-                    <td style="border:1px solid #ddd;">${dailyP4.toFixed(1)} mL</td>
-                    <td style="border:1px solid #ddd; color:#ccc;">-</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd;">${dailyP4.toFixed(1)} mL</td>
+                    <td style="text-align:left; padding:8px;"><b>Part 4</b> (Bio)</td>
+                    <td>${dailyP4.toFixed(1)}</td>
+                    <td>-</td>
+                    <td style="background:#e3f2fd;">${dailyP4.toFixed(1)} mL</td>
                 </tr>
             </table>
             <p style="margin-top:10px; font-size:0.9em; color:#666;"><em>${correctionMsg}</em></p>
         `;
     }
 
-    renderAll();
+    loadData();
 </script>
 </body>
 </html>
