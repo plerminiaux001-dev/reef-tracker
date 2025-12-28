@@ -1,4 +1,40 @@
 :root { --bg: #f4f4f9; --card: #ffffff; --primary: #007bff; --text: #333; --active-tab: #0056b3; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
-/* ... (Paste the rest of your CSS here) ... */
+h1, h2, h3 { color: #2c3e50; margin-top: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+.grid-small { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+.card { background: var(--card); padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.card.highlight { border-top: 5px solid var(--primary); }
+.tab-nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+.tab-btn { background: #e9ecef; color: #555; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: 0.3s; flex: 1; max-width: 200px; }
+.tab-btn:hover { background: #dcdcdc; }
+.tab-btn.active { background: var(--primary); color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.form-group { margin-bottom: 15px; }
+label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; width: 100%; }
+button:hover { background: #0056b3; }
+button:disabled { background: #ccc; cursor: not-allowed; }
+.status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.status-box { padding: 10px; border-radius: 5px; text-align: center; color: white; font-weight: bold; }
+.good { background: #28a745; }
+.warn { background: #ffc107; color:#333; }
+.bad { background: #dc3545; }
+#calc-results { margin-top: 20px; padding: 15px; background: #e9ecef; border-left: 5px solid #007bff; display: none; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+th { background-color: #f8f9fa; }
+.info-table { width: 100%; border: 1px solid #eee; margin-bottom: 20px; font-size: 0.9em; }
+.info-table th { background: #007bff; color: white; text-align: center; }
+.info-table td { text-align: center; border-bottom: 1px solid #eee; }
+.info-table tr:last-child td { border-bottom: none; }
+
+/* Chart specific styles */
+.chart-container { position: relative; height: 350px; width: 100%; }
+.chart-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+.chart-check-label { display: flex; align-items: center; gap: 5px; font-size: 0.9em; cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa; }
+.chart-check-label:hover { background: #e9ecef; }
 .chart-check-label input { width: auto; margin: 0; }
