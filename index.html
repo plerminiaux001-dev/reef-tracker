@@ -159,14 +159,6 @@
                     <tr><td><b>Part 4</b> (Iron & Bio)</td><td>0.5</td><td>0.5 mL</td></tr>
                 </tbody>
             </table>
-
-            <h3>3. Rules of Thumb</h3>
-            <ul style="line-height:1.6; color:#444;">
-                <li><b>Separation:</b> Wait at least 10 minutes between dosing each part.</li>
-                <li><b>Order:</b> Always dose in numerical order (1 &rarr; 2 &rarr; 3 &rarr; 4).</li>
-                <li><b>Max Daily Increase:</b> Do not raise Calcium by more than 20ppm or Alkalinity by more than 1.4 dKH per day.</li>
-                <li><b>Adjustment:</b> If Calcium needs a large correction, calculate the total needed and divide by 3 to spread it over 3 days.</li>
-            </ul>
         </div>
     </div>
 
@@ -298,79 +290,68 @@
         });
     }
 
-    // --- HELPERS ---
-    function generateRecipeHTML(baseP1) {
-        const p2 = baseP1 * RATIO_P2;
-        const p3 = baseP1 * RATIO_P3;
-        const p4 = baseP1 * RATIO_P4;
-        
-        return `
-            <table class="recipe-table" style="background:white; border-radius:5px; border:1px solid #eee;">
-                <tr><td>Part 1 (Ca/Mg)</td><td>${baseP1.toFixed(1)} mL</td></tr>
-                <tr><td>Part 2 (Alk)</td><td>${p2.toFixed(1)} mL</td></tr>
-                <tr><td>Part 3 (Iodine)</td><td>${p3.toFixed(1)} mL</td></tr>
-                <tr><td>Part 4 (Bioactive)</td><td>${p4.toFixed(1)} mL</td></tr>
-            </table>
-        `;
-    }
-
-    // --- DOSING CALCULATOR LOGIC ---
-// --- UPDATED DOSING CALCULATOR (Red Sea Style) ---
+    // --- NEW SPLIT TABLE DOSING CALCULATOR ---
     function calculateDosing() {
-        if (logs.length < 2) {
-            alert("Need at least 2 log entries to calculate trends!");
-            return;
+        // 1. Get Inputs
+        const currentCa = parseFloat(document.getElementById('calcCurrentCa').value);
+        const targetCa = parseFloat(document.getElementById('calcTargetCa').value);
+
+        if (!currentCa || !targetCa) { alert("Please enter Current and Target Calcium."); return; }
+        
+        // 2. Calculate Daily Consumption (If possible)
+        let dailyP1 = 0;
+        let dailyDrop = 0;
+        
+        if (logs.length >= 2) {
+            const curL = logs[logs.length-1];
+            const preL = logs[logs.length-2];
+            const days = (new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24);
+            
+            if(days > 0 && curL.ca && preL.ca) {
+                const caLoss = preL.ca - curL.ca; 
+                dailyDrop = caLoss / days;
+                // If drop is positive (consumption), calc dose. If negative (rising), dose is 0.
+                if (dailyDrop > 0) {
+                    dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
+                }
+            }
         }
 
-        const current = logs[logs.length - 1];
-        const previous = logs[logs.length - 2];
-        const daysDiff = (new Date(current.date) - new Date(previous.date)) / (1000 * 60 * 60 * 24);
-        
-        if (daysDiff === 0) { alert("Entries are on the same day. Cannot calc usage."); return; }
+        // 3. Calculate Daily Ratios for Parts 2, 3, 4
+        const dailyP2 = dailyP1 * RATIO_P2;
+        const dailyP3 = dailyP1 * RATIO_P3;
+        const dailyP4 = dailyP1 * RATIO_P4;
 
-        // --- 1. CALCULATE DAILY CONSUMPTION (The "Base") ---
-        // How much did the tank drop per day?
-        // Note: This assumes you DID NOT dose anything between tests. 
-        // If you did dose, this logic needs your total dosed amount to be perfect.
-        // For now, we estimate raw drop.
-        
-        const caDropPerDay = (previous.ca - current.ca) / daysDiff; 
-        // Heuristic: 1ml of Red Sea Part 1 raises ~2ppm in 25g (Approximation)
-        // Adjust for 35g: 1ml raises ~1.4ppm.
-        const part1DailyMaint = caDropPerDay > 0 ? (caDropPerDay / 1.4).toFixed(1) : 0; 
+        // 4. Calculate Correction (Part 1 ONLY)
+        const gap = targetCa - currentCa;
+        let correctionP1_Daily = 0;
+        let correctionMsg = "✅ Levels match target.";
 
-        // Red Sea Ratio for Parts 2, 3, 4 based on Part 1
-        const part2Daily = (part1DailyMaint * 2).toFixed(1); // Usually 2x Part 1 volume
-        const part3Daily = (part1DailyMaint * 0.5).toFixed(1); // Usually 0.5x Part 1 volume
-        const part4Daily = (part1DailyMaint * 0.5).toFixed(1); // Usually 0.5x Part 1 volume
-
-        // --- 2. CALCULATE CORRECTION (The "Fix") ---
-        // Target Calcium: 430 ppm
-        const targetCa = 430;
-        const caDeficit = targetCa - current.ca;
-        
-        let correctionMsg = "No correction needed.";
-        let part1Correction = 0;
-        
-        if (caDeficit > 10) {
-            // Need to raise Ca.
-            // Total mL needed = Deficit / 1.4 (ppm per mL in 35g)
-            const totalNeeded = caDeficit / 1.4;
-            // Split over 3 days max safety
-            part1Correction = (totalNeeded / 3).toFixed(1);
-            correctionMsg = `Calcium is low (${current.ca}). Raise to ${targetCa} over 3 days.`;
+        if (gap > 5) { // Only correct if gap is meaningful
+            const totalCorrectionNeeded = gap / CA_IMPACT_FACTOR;
+            
+            // If gap is large (>20ppm), split over 3 days. Otherwise, do it today.
+            if (gap > 20) {
+                correctionP1_Daily = totalCorrectionNeeded / 3;
+                correctionMsg = `⚠️ <b>Low Calcium (-${gap} ppm).</b><br>Adding correction dose over 3 days.`;
+            } else {
+                correctionP1_Daily = totalCorrectionNeeded;
+                correctionMsg = `⚠️ <b>Low Calcium (-${gap} ppm).</b><br>Adding correction dose today.`;
+            }
+        } else if (gap < -5) {
+             correctionMsg = `🛑 <b>High Calcium.</b> Skip Part 1 until levels drop.`;
         }
 
-        // --- 3. RENDER THE SPLIT TABLE ---
-        const totalPart1 = (parseFloat(part1DailyMaint) + parseFloat(part1Correction)).toFixed(1);
+        // 5. Render Split Table
+        const totalP1Today = dailyP1 + correctionP1_Daily;
 
         const resDiv = document.getElementById('calc-results');
         resDiv.style.display = 'block';
         resDiv.innerHTML = `
             <h3>🧪 Red Sea Dosing Plan</h3>
-            <p>Based on a drop of <b>${caDropPerDay.toFixed(1)} ppm Calcium/day</b></p>
+            <p>Daily Consumption: <b>${dailyDrop.toFixed(1)} ppm/day</b></p>
             
-            <table style="width:100%; border-collapse: collapse; text-align: center;">
+            <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid #ddd;">
                 <tr style="background:#f0f0f0; font-weight:bold;">
                     <td style="padding:8px; border:1px solid #ddd;">Product</td>
                     <td style="padding:8px; border:1px solid #ddd;">Daily Base<br><span style="font-size:0.8em; font-weight:normal">(Forever)</span></td>
@@ -379,59 +360,31 @@
                 </tr>
                 <tr>
                     <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 1</b> (Ca)</td>
-                    <td style="border:1px solid #ddd;">${part1DailyMaint} mL</td>
-                    <td style="border:1px solid #ddd; color:#d63384; font-weight:bold;">+ ${part1Correction} mL</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd; font-weight:bold;">${totalPart1} mL</td>
+                    <td style="border:1px solid #ddd;">${dailyP1.toFixed(1)} mL</td>
+                    <td style="border:1px solid #ddd; color:#d63384; font-weight:bold;">+ ${correctionP1_Daily.toFixed(1)} mL</td>
+                    <td style="border:1px solid #ddd; background:#e3f2fd; font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
                 </tr>
                 <tr>
                     <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 2</b> (Alk)</td>
-                    <td style="border:1px solid #ddd;">${part2Daily} mL</td>
+                    <td style="border:1px solid #ddd;">${dailyP2.toFixed(1)} mL</td>
                     <td style="border:1px solid #ddd; color:#ccc;">-</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd;">${part2Daily} mL</td>
+                    <td style="border:1px solid #ddd; background:#e3f2fd;">${dailyP2.toFixed(1)} mL</td>
                 </tr>
                 <tr>
                     <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 3</b> (Iodine)</td>
-                    <td style="border:1px solid #ddd;">${part3Daily} mL</td>
+                    <td style="border:1px solid #ddd;">${dailyP3.toFixed(1)} mL</td>
                     <td style="border:1px solid #ddd; color:#ccc;">-</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd;">${part3Daily} mL</td>
+                    <td style="border:1px solid #ddd; background:#e3f2fd;">${dailyP3.toFixed(1)} mL</td>
                 </tr>
                 <tr>
                     <td style="text-align:left; padding:8px; border:1px solid #ddd;"><b>Part 4</b> (Bio)</td>
-                    <td style="border:1px solid #ddd;">${part4Daily} mL</td>
+                    <td style="border:1px solid #ddd;">${dailyP4.toFixed(1)} mL</td>
                     <td style="border:1px solid #ddd; color:#ccc;">-</td>
-                    <td style="border:1px solid #ddd; background:#e3f2fd;">${part4Daily} mL</td>
+                    <td style="border:1px solid #ddd; background:#e3f2fd;">${dailyP4.toFixed(1)} mL</td>
                 </tr>
             </table>
-            <p style="margin-top:10px; font-size:0.9em;"><em>${correctionMsg}</em></p>
+            <p style="margin-top:10px; font-size:0.9em; color:#666;"><em>${correctionMsg}</em></p>
         `;
-    }
-            // MANUAL FALLBACK FOR NO DATA
-            planHTML = `
-                <h3>New Daily Schedule</h3>
-                <p style="color:#d63384; font-size:0.9em;">⚠️ Need 2 logs to calculate consumption.</p>
-                <div style="background:#fff3cd; padding:10px; border-radius:5px;">
-                    <p style="margin:0 0 5px 0; font-size:0.9em;"><b>Estimate Recipe Manually:</b></p>
-                    <input type="number" id="manualBase" placeholder="Enter planned Part 1 dose (mL)" style="margin-bottom:5px;">
-                    <button onclick="renderManualRecipe()" style="padding:5px; font-size:0.9em;">Show Ratios</button>
-                    <div id="manual-recipe-output" style="margin-top:10px;"></div>
-                </div>
-            `;
-        }
-
-        const resDiv = document.getElementById('calc-results');
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = `
-            ${planHTML}
-            <hr>
-            <p>${correctionMsg}</p>
-        `;
-    }
-
-    function renderManualRecipe() {
-        const val = parseFloat(document.getElementById('manualBase').value);
-        if(val) {
-            document.getElementById('manual-recipe-output').innerHTML = generateRecipeHTML(val);
-        }
     }
 
     renderAll();
