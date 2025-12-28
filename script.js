@@ -44,11 +44,10 @@ const toNum = v => {
 };
 
 // Helper: Determine color class based on value
-// Returns: 'good' (Green), 'warn' (Yellow), 'bad' (Red), or '' (None)
 const getStatusClass = (type, val) => {
     if (val === null || val === undefined) return '';
     const range = RANGES[type];
-    if (!range) return ''; // No range defined for this type
+    if (!range) return ''; 
 
     // Perfect Range = Green
     if (val >= range.min && val <= range.max) return 'good';
@@ -59,6 +58,16 @@ const getStatusClass = (type, val) => {
     
     // Way off = Red
     return 'bad';
+};
+
+// Helper: Format YYYY-MM-DD to MM/DD/YYYY
+const formatDate = (isoString) => {
+    if (!isoString) return '-';
+    // Handle cases where string might be full ISO (2025-12-28T00:00...)
+    const cleanDate = isoString.toString().split('T')[0];
+    const parts = cleanDate.split('-');
+    if (parts.length !== 3) return cleanDate;
+    return `${parts[1]}/${parts[2]}/${parts[0]}`; // MM/DD/YYYY
 };
 
 // Tab navigation
@@ -113,16 +122,20 @@ async function loadData(forceRefresh = false) {
         if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
         const data = await resp.json();
 
-        logs = data.map(item => ({
-            date: (item.date || '').toString().split('T')[0],
-            alk: toNum(item.alk),
-            ca: toNum(item.ca),
-            mg: toNum(item.mg),
-            no3: toNum(item.no3),
-            po4: toNum(item.po4),
-            ph: toNum(item.ph)
-        })).filter(Boolean);
+        logs = data.map(item => {
+            const rawDate = (item.date || '').toString().split('T')[0];
+            return {
+                date: formatDate(rawDate), // Convert to MM/DD/YYYY here
+                alk: toNum(item.alk),
+                ca: toNum(item.ca),
+                mg: toNum(item.mg),
+                no3: toNum(item.no3),
+                po4: toNum(item.po4),
+                ph: toNum(item.ph)
+            };
+        }).filter(item => item.date !== '-');
 
+        // Sort by Date (Requires converting back to standard date object for comparison)
         logs.sort((a,b) => new Date(a.date) - new Date(b.date));
         renderAll();
     } catch (err) {
@@ -138,8 +151,11 @@ async function submitLog() {
     btn.innerText = "Saving...";
     btn.disabled = true;
 
+    // Grab values. Note: Input value is always YYYY-MM-DD
+    const rawInputDate = (dateInput.value || '').trim();
+    
     const entry = {
-        date: (dateInput.value || '').trim(),
+        date: rawInputDate, 
         alk: document.getElementById('alk').value.trim(),
         ca: document.getElementById('ca').value.trim(),
         mg: document.getElementById('mg').value.trim(),
@@ -183,8 +199,9 @@ async function submitLog() {
         }
     }
 
+    // Push to local log with formatted date for display
     logs.push({
-        date: entry.date,
+        date: formatDate(rawInputDate),
         alk: toNum(entry.alk),
         ca: toNum(entry.ca),
         mg: toNum(entry.mg),
@@ -220,7 +237,6 @@ function renderTable() {
         // Helper to create TD with dynamic class
         const mkCell = (type, val) => {
             const cls = getStatusClass(type, val);
-            // If class is good/bad, add white text style. If warn, text is usually dark.
             const style = (cls === 'good' || cls === 'bad') ? 'color: white;' : '';
             return `<td class="${cls}" style="${style}">${val ?? '-'}</td>`;
         };
@@ -248,7 +264,6 @@ function renderStatus() {
     }
     const last = logs[logs.length-1];
 
-    // Reuse the new getStatusClass helper
     const alkClass = getStatusClass('alk', last.alk);
     const caClass = getStatusClass('ca', last.ca);
     const no3Class = getStatusClass('no3', last.no3);
