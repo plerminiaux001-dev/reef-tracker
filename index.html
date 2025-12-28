@@ -40,8 +40,12 @@
         .info-table td { text-align: center; border-bottom: 1px solid #eee; }
         .info-table tr:last-child td { border-bottom: none; }
         
-        /* --- FIX: Container to control Chart Height --- */
+        /* Chart specific styles */
         .chart-container { position: relative; height: 350px; width: 100%; }
+        .chart-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .chart-check-label { display: flex; align-items: center; gap: 5px; font-size: 0.9em; cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa; }
+        .chart-check-label:hover { background: #e9ecef; }
+        .chart-check-label input { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -95,7 +99,19 @@
         </div>
 
         <div class="card">
-            <h2>📈 Trends</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="margin:0;">📈 Trends</h2>
+            </div>
+            
+            <div class="chart-controls">
+                <label class="chart-check-label"><input type="checkbox" data-idx="0" checked> 🔵 Alk</label>
+                <label class="chart-check-label"><input type="checkbox" data-idx="1" checked> 🟣 Ca</label>
+                <label class="chart-check-label"><input type="checkbox" data-idx="2"> 🟠 Mg</label>
+                <label class="chart-check-label"><input type="checkbox" data-idx="3" checked> 🟢 NO3</label>
+                <label class="chart-check-label"><input type="checkbox" data-idx="4"> 🟤 PO4</label>
+                <label class="chart-check-label"><input type="checkbox" data-idx="5"> 🔴 pH</label>
+            </div>
+
             <div class="chart-container">
                 <canvas id="tankChart"></canvas>
             </div>
@@ -215,6 +231,7 @@
     const calcCurrentCaInput = document.getElementById('calcCurrentCa');
     const calcTargetCaInput = document.getElementById('calcTargetCa');
     const tankCtx = document.getElementById('tankChart').getContext('2d');
+    const chartCheckboxes = document.querySelectorAll('.chart-check-label input');
 
     // Helper: safely parse number
     const toNum = v => {
@@ -243,6 +260,19 @@
     saveEntryBtn.addEventListener('click', submitLog);
     refreshBtn.addEventListener('click', () => loadData(true));
     calcBtn.addEventListener('click', calculateDosing);
+    
+    // Checkbox listener for graph
+    chartCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            if(chartInstance) {
+                const idx = parseInt(cb.dataset.idx);
+                const isChecked = cb.checked;
+                // Toggle dataset visibility
+                chartInstance.data.datasets[idx].hidden = !isChecked;
+                chartInstance.update();
+            }
+        });
+    });
 
     // Fetch data from Google Sheets / Apps Script
     async function loadData(forceRefresh = false) {
@@ -270,12 +300,11 @@
             renderAll();
         } catch (err) {
             console.error('loadData error', err);
-            // Keep existing logs if available; show failure indicator
             statusDisplay.innerHTML = '<div class="status-box bad">Connection Failed</div>';
         }
     }
 
-    // Submit new log; tries a proper POST first; falls back to no-cors if blocked by CORS
+    // Submit new log
     async function submitLog() {
         const btn = saveEntryBtn;
         const originalText = btn.innerText;
@@ -299,7 +328,6 @@
             return;
         }
 
-        // Try normal POST (preferred — requires CORS on server)
         try {
             const resp = await fetch(API_URL, {
                 method: "POST",
@@ -307,15 +335,10 @@
                 body: JSON.stringify(entry)
             });
             if (!resp.ok) throw new Error('Server returned ' + resp.status);
-            // if server returns JSON result, we can use it — otherwise optimistic update
-            try {
-                const saved = await resp.json();
-                // Optionally merge server data if returned (skipped if not)
-            } catch (e) { /* ignore non-json response */ }
+            try { await resp.json(); } catch (e) { }
 
             alert("Saved to Cloud!");
         } catch (err) {
-            // If the failure is likely CORS (TypeError) we fallback to no-cors POST to keep UX working
             console.warn('POST failed, attempting no-cors fallback', err);
             try {
                 await fetch(API_URL, {
@@ -327,7 +350,6 @@
                 alert("Saved to Cloud (fallback).");
             } catch (err2) {
                 alert("Error saving: " + err2);
-                console.error('Fallback POST failed', err2);
                 btn.innerText = originalText;
                 btn.disabled = false;
                 return;
@@ -346,13 +368,11 @@
         });
         renderAll();
 
-        // Clear numeric inputs only
         document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
         btn.innerText = originalText;
         btn.disabled = false;
     }
 
-    // Render all UI parts
     function renderAll() {
         renderTable();
         renderStatus();
@@ -365,9 +385,7 @@
 
     function renderTable() {
         if (!historyTbody) return;
-        // Use fragment to avoid multiple reflows
         const frag = document.createDocumentFragment();
-        // show newest first
         [...logs].slice().reverse().forEach(log => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -413,41 +431,51 @@
 
     function renderChart() {
         const labels = logs.map(l => l.date);
-        const dataAlk = logs.map(l => l.alk);
-        const dataCa = logs.map(l => l.ca);
-        const dataNo3 = logs.map(l => l.no3);
+        
+        // Define all datasets
+        const datasets = [
+            { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#007bff', backgroundColor: '#007bff', spanGaps: true },
+            { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#6f42c1', backgroundColor: '#6f42c1', spanGaps: true },
+            { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#fd7e14', backgroundColor: '#fd7e14', spanGaps: true },
+            { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#28a745', backgroundColor: '#28a745', spanGaps: true },
+            { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#20c997', backgroundColor: '#20c997', spanGaps: true },
+            { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#dc3545', backgroundColor: '#dc3545', spanGaps: true }
+        ];
 
-        if (!chartInstance) {
-            chartInstance = new Chart(tankCtx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: 'Alk', data: dataAlk, borderColor: '#007bff', spanGaps: true, hidden: !dataAlk.some(Boolean) },
-                        { label: 'Calcium', data: dataCa, borderColor: '#6f42c1', spanGaps: true, hidden: !dataCa.some(Boolean) },
-                        { label: 'Nitrate', data: dataNo3, borderColor: '#28a745', spanGaps: true, hidden: !dataNo3.some(Boolean) }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { position: 'top' } },
-                    scales: { x: { display: true }, y: { display: true } }
-                }
+        // If chart exists, update data
+        if (chartInstance) {
+            chartInstance.data.labels = labels;
+            datasets.forEach((ds, i) => {
+                chartInstance.data.datasets[i].data = ds.data;
             });
-            // FIX: Removed manual JS height setting since CSS .chart-container handles it now
+            chartInstance.update();
             return;
         }
 
-        // Update data and toggle dataset visibility
-        chartInstance.data.labels = labels;
-        chartInstance.data.datasets[0].data = dataAlk;
-        chartInstance.data.datasets[1].data = dataCa;
-        chartInstance.data.datasets[2].data = dataNo3;
-        chartInstance.data.datasets.forEach(ds => {
-            // hide dataset if all values null/undefined
-            ds.hidden = !(ds.data && ds.data.some(v => v !== null && v !== undefined));
+        // Initialize chart
+        chartInstance = new Chart(tankCtx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { 
+                    legend: { display: false } // Hide default legend since we have custom checkboxes
+                },
+                scales: { 
+                    x: { display: true }, 
+                    y: { display: true, beginAtZero: false } // Axis will auto-scale to visible data
+                }
+            }
+        });
+
+        // Set initial visibility based on checked boxes
+        chartCheckboxes.forEach((cb, idx) => {
+            chartInstance.data.datasets[idx].hidden = !cb.checked;
         });
         chartInstance.update();
     }
