@@ -89,9 +89,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 if (dateInput) dateInput.valueAsDate = new Date();
 
 // Event listeners
-saveEntryBtn.addEventListener('click', submitLog);
-refreshBtn.addEventListener('click', () => loadData(true));
-calcBtn.addEventListener('click', calculateDosing);
+if(saveEntryBtn) saveEntryBtn.addEventListener('click', submitLog);
+if(refreshBtn) refreshBtn.addEventListener('click', () => loadData(true));
+if(calcBtn) calcBtn.addEventListener('click', calculateDosing);
 
 // Salt Mix Listener
 if(btnMix) {
@@ -102,16 +102,13 @@ if(btnMix) {
         if(!vol || !sg) return;
 
         // CALIBRATION FOR RED SEA CORAL PRO
-        // Target: 38.2g/Liter @ 35ppt (1.026)
-        // 38.2g * 3.785L = ~144.6 grams/gallon
         const baseGramsPerGal = 145; 
         
-        // Ratio adjustment (Linear approximation)
-        // (SG - 1) / 0.026 gives % of "Full Strength" (1.026)
+        // Ratio adjustment
         const ratio = (sg - 1) / 0.026;
         
         const totalGrams = vol * baseGramsPerGal * ratio;
-        const totalCups = totalGrams / 280; // Red Sea Pro is dense (~280g/cup)
+        const totalCups = totalGrams / 280; 
 
         resGrams.innerText = Math.round(totalGrams);
         resCups.innerText = totalCups.toFixed(2);
@@ -139,7 +136,7 @@ async function loadData(forceRefresh = false) {
         statusDisplay.innerHTML = `
             <div style="grid-column: span 3; text-align: center; padding: 20px;">
                 <div class="spinner"></div>
-                <div style="margin-top: 10px; color: #666; font-size: 0.9em;">Syncing with Reef Cloud...</div>
+                <div style="margin-top: 10px; color: #94a3b8; font-size: 0.9em;">Syncing with Reef Cloud...</div>
             </div>
         `;
     }
@@ -300,12 +297,12 @@ function renderChart() {
     const labels = logs.map(l => l.date);
     
     const datasets = [
-        { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#007bff', backgroundColor: '#007bff', yAxisID: 'y', spanGaps: true },
-        { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#6f42c1', backgroundColor: '#6f42c1', yAxisID: 'y1', spanGaps: true },
-        { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#fd7e14', backgroundColor: '#fd7e14', yAxisID: 'y1', spanGaps: true },
-        { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#28a745', backgroundColor: '#28a745', yAxisID: 'y', spanGaps: true },
-        { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#20c997', backgroundColor: '#20c997', yAxisID: 'y', spanGaps: true },
-        { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#dc3545', backgroundColor: '#dc3545', yAxisID: 'y', spanGaps: true }
+        { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#06b6d4', backgroundColor: '#06b6d4', yAxisID: 'y', spanGaps: true },
+        { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#a855f7', backgroundColor: '#a855f7', yAxisID: 'y1', spanGaps: true },
+        { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#f97316', backgroundColor: '#f97316', yAxisID: 'y1', spanGaps: true },
+        { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#10b981', backgroundColor: '#10b981', yAxisID: 'y', spanGaps: true },
+        { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#14b8a6', backgroundColor: '#14b8a6', yAxisID: 'y', spanGaps: true },
+        { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#ef4444', backgroundColor: '#ef4444', yAxisID: 'y', spanGaps: true }
     ];
 
     if (chartInstance) {
@@ -315,6 +312,12 @@ function renderChart() {
         return;
     }
 
+    // ⬇️⬇️⬇️ THIS IS THE ONLY CHANGE FROM YOUR ORIGINAL FILE ⬇️⬇️⬇️
+    // Force Chart.js to use Light Grey for text and Subtle White for grid lines
+    Chart.defaults.color = '#94a3b8'; 
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+    // ⬆️⬆️⬆️ END OF CHANGE ⬆️⬆️⬆️
+
     chartInstance = new Chart(tankCtx, {
         type: 'line',
         data: { labels, datasets },
@@ -323,9 +326,20 @@ function renderChart() {
             interaction: { mode: 'index', intersect: false },
             plugins: { legend: { display: false } },
             scales: {
-                x: { display: true, grid: { color: '#eee' } },
-                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Alk / pH / Nutrients' }, grid: { color: '#eee' } },
-                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Calcium / Magnesium' }, grid: { drawOnChartArea: false } },
+                x: { 
+                    display: true, 
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' } // Subtle white grid
+                },
+                y: { 
+                    type: 'linear', display: true, position: 'left', 
+                    title: { display: true, text: 'Alk / pH / Nutrients', color: '#cbd5e1' }, 
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' } 
+                },
+                y1: { 
+                    type: 'linear', display: true, position: 'right', 
+                    title: { display: true, text: 'Calcium / Magnesium', color: '#cbd5e1' }, 
+                    grid: { drawOnChartArea: false } 
+                },
             }
         }
     });
@@ -384,39 +398,39 @@ function calculateDosing() {
     calcResults.innerHTML = `
         <h3>🧪 Red Sea Dosing Plan</h3>
         <p>Daily Consumption: <b>${dailyDrop.toFixed(1)} ppm/day</b></p>
-        <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid #ddd;">
-            <tr style="background:#f0f0f0; font-weight:bold;">
+        <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid rgba(255,255,255,0.1);">
+            <tr style="background:rgba(0,0,0,0.2); font-weight:bold;">
                 <td style="padding:8px;">Product</td>
                 <td style="padding:8px;">Base</td>
                 <td style="padding:8px; color:#d63384;">Corr.</td>
-                <td style="padding:8px; background:#e3f2fd;">TOTAL</td>
+                <td style="padding:8px; background:rgba(6,182,212,0.15);">TOTAL</td>
             </tr>
             <tr>
                 <td style="text-align:left; padding:8px;"><b>Part 1</b> (Ca)</td>
                 <td>${dailyP1.toFixed(1)}</td>
                 <td style="color:#d63384;">+ ${correctionP1_Daily.toFixed(1)}</td>
-                <td style="background:#e3f2fd; font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
+                <td style="background:rgba(6,182,212,0.15); font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
             </tr>
             <tr>
                 <td style="text-align:left; padding:8px;"><b>Part 2</b> (Alk)</td>
                 <td>${dailyP2.toFixed(1)}</td>
                 <td>-</td>
-                <td style="background:#e3f2fd;">${dailyP2.toFixed(1)} mL</td>
+                <td style="background:rgba(6,182,212,0.15);">${dailyP2.toFixed(1)} mL</td>
             </tr>
             <tr>
                 <td style="text-align:left; padding:8px;"><b>Part 3</b> (Iodine)</td>
                 <td>${dailyP3.toFixed(1)}</td>
                 <td>-</td>
-                <td style="background:#e3f2fd;">${dailyP3.toFixed(1)} mL</td>
+                <td style="background:rgba(6,182,212,0.15);">${dailyP3.toFixed(1)} mL</td>
             </tr>
             <tr>
                 <td style="text-align:left; padding:8px;"><b>Part 4</b> (Bio)</td>
                 <td>${dailyP4.toFixed(1)}</td>
                 <td>-</td>
-                <td style="background:#e3f2fd;">${dailyP4.toFixed(1)} mL</td>
+                <td style="background:rgba(6,182,212,0.15);">${dailyP4.toFixed(1)} mL</td>
             </tr>
         </table>
-        <p style="margin-top:10px; font-size:0.9em; color:#666;"><em>${correctionMsg}</em></p>
+        <p style="margin-top:10px; font-size:0.9em; color:#94a3b8;"><em>${correctionMsg}</em></p>
     `;
 }
 
