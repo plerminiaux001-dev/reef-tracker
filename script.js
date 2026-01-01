@@ -1,4 +1,16 @@
-// --- ⬇️ CONFIGURATION AREA ⬇️ ---
+// --- 🕵️ ENVIRONMENT DETECTION 🕵️ ---
+// This runs on every load. If the URL contains "dev--", it turns on Debug Mode.
+(function checkEnvironment() {
+    const isDev = window.location.hostname.includes('dev--');
+    const title = document.getElementById('appTitle');
+
+    if (isDev && title) {
+        title.innerHTML = '🚧 DEV MODE: 389 Reef Command Center';
+        title.style.color = '#d63384'; // Hot Pink
+        console.log("⚠️ Running in DEV environment");
+    }
+})();/
+//--- ⬇️ CONFIGURATION AREA ⬇️ ---
 const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec";
 const TANK_GAL = 35;
 const TANK_LITERS = TANK_GAL * 3.78541;
