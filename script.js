@@ -11,6 +11,7 @@
     }
 })();
 //--- ⬇️ CONFIGURATION AREA ⬇️ ---
+//--- ⬇️ CONFIGURATION AREA ⬇️ ---
 const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec";
 const TANK_GAL = 35;
 const TANK_LITERS = TANK_GAL * 3.78541;
