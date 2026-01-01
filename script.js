@@ -98,20 +98,13 @@ if(btnMix) {
     btnMix.addEventListener('click', () => {
         const vol = parseFloat(mixVol.value);
         const sg = parseFloat(mixTarget.value);
-        
         if(!vol || !sg) return;
-
-        // CALIBRATION FOR RED SEA CORAL PRO
-        // Target: 38.2g/Liter @ 35ppt (1.026)
-        // 38.2g * 3.785L = ~144.6 grams/gallon
+        
+        // Red Sea Coral Pro: ~145g/gal
         const baseGramsPerGal = 145; 
-        
-        // Ratio adjustment (Linear approximation)
-        // (SG - 1) / 0.026 gives % of "Full Strength" (1.026)
         const ratio = (sg - 1) / 0.026;
-        
         const totalGrams = vol * baseGramsPerGal * ratio;
-        const totalCups = totalGrams / 280; // Red Sea Pro is dense (~280g/cup)
+        const totalCups = totalGrams / 280; 
 
         resGrams.innerText = Math.round(totalGrams);
         resCups.innerText = totalCups.toFixed(2);
@@ -119,13 +112,12 @@ if(btnMix) {
     });
 }
 
-// Checkbox listener for graph
+// Checkbox listener
 chartCheckboxes.forEach(cb => {
     cb.addEventListener('change', () => {
         if(chartInstance) {
             const idx = parseInt(cb.dataset.idx);
-            const isChecked = cb.checked;
-            chartInstance.data.datasets[idx].hidden = !isChecked;
+            chartInstance.data.datasets[idx].hidden = !cb.checked;
             chartInstance.update();
         }
     });
@@ -139,7 +131,7 @@ async function loadData(forceRefresh = false) {
         statusDisplay.innerHTML = `
             <div style="grid-column: span 3; text-align: center; padding: 20px;">
                 <div class="spinner"></div>
-                <div style="margin-top: 10px; color: #666; font-size: 0.9em;">Syncing with Reef Cloud...</div>
+                <div style="margin-top: 10px; color: #94a3b8; font-size: 0.9em;">Syncing with Reef Cloud...</div>
             </div>
         `;
     }
@@ -178,7 +170,6 @@ async function submitLog() {
     btn.disabled = true;
 
     const rawInputDate = (dateInput.value || '').trim();
-    
     const entry = {
         date: rawInputDate, 
         alk: document.getElementById('alk').value.trim(),
@@ -253,7 +244,6 @@ function renderAll() {
 function renderTable() {
     if (!historyTbody) return;
     const frag = document.createDocumentFragment();
-    
     [...logs].slice().reverse().forEach(log => {
         const tr = document.createElement('tr');
         const mkCell = (type, val) => {
@@ -298,14 +288,13 @@ function renderStatus() {
 
 function renderChart() {
     const labels = logs.map(l => l.date);
-    
     const datasets = [
-        { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#007bff', backgroundColor: '#007bff', yAxisID: 'y', spanGaps: true },
-        { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#6f42c1', backgroundColor: '#6f42c1', yAxisID: 'y1', spanGaps: true },
-        { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#fd7e14', backgroundColor: '#fd7e14', yAxisID: 'y1', spanGaps: true },
-        { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#28a745', backgroundColor: '#28a745', yAxisID: 'y', spanGaps: true },
-        { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#20c997', backgroundColor: '#20c997', yAxisID: 'y', spanGaps: true },
-        { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#dc3545', backgroundColor: '#dc3545', yAxisID: 'y', spanGaps: true }
+        { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#06b6d4', backgroundColor: '#06b6d4', yAxisID: 'y', spanGaps: true },
+        { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#a855f7', backgroundColor: '#a855f7', yAxisID: 'y1', spanGaps: true },
+        { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#f97316', backgroundColor: '#f97316', yAxisID: 'y1', spanGaps: true },
+        { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#10b981', backgroundColor: '#10b981', yAxisID: 'y', spanGaps: true },
+        { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#14b8a6', backgroundColor: '#14b8a6', yAxisID: 'y', spanGaps: true },
+        { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#ef4444', backgroundColor: '#ef4444', yAxisID: 'y', spanGaps: true }
     ];
 
     if (chartInstance) {
@@ -315,6 +304,10 @@ function renderChart() {
         return;
     }
 
+    // DARK MODE CONFIGURATION
+    Chart.defaults.color = '#94a3b8'; // Global text color (light grey)
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)'; // Global grid color (subtle white)
+
     chartInstance = new Chart(tankCtx, {
         type: 'line',
         data: { labels, datasets },
@@ -323,9 +316,20 @@ function renderChart() {
             interaction: { mode: 'index', intersect: false },
             plugins: { legend: { display: false } },
             scales: {
-                x: { display: true, grid: { color: '#eee' } },
-                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Alk / pH / Nutrients' }, grid: { color: '#eee' } },
-                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Calcium / Magnesium' }, grid: { drawOnChartArea: false } },
+                x: { 
+                    display: true, 
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' } 
+                },
+                y: { 
+                    type: 'linear', display: true, position: 'left', 
+                    title: { display: true, text: 'Alk / pH / Nutrients', color: '#cbd5e1' },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                },
+                y1: { 
+                    type: 'linear', display: true, position: 'right', 
+                    title: { display: true, text: 'Calcium / Magnesium', color: '#cbd5e1' },
+                    grid: { drawOnChartArea: false }
+                },
             }
         }
     });
@@ -334,90 +338,6 @@ function renderChart() {
         chartInstance.data.datasets[idx].hidden = !cb.checked;
     });
     chartInstance.update();
-}
-
-// --- CALCULATOR LOGIC ---
-function calculateDosing() {
-    const currentCa = toNum(calcCurrentCaInput.value);
-    const targetCa = toNum(calcTargetCaInput.value);
-
-    if (currentCa === null || targetCa === null) {
-        alert("Please enter Current and Target Calcium.");
-        return;
-    }
-
-    let dailyP1 = 0;
-    let dailyDrop = 0;
-
-    const caLogs = logs.filter(l => toNum(l.ca) !== null);
-    if (caLogs.length >= 2) {
-        const curL = caLogs[caLogs.length-1];
-        const preL = caLogs[caLogs.length-2];
-        const days = Math.abs((new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24)) || 1;
-        const caLoss = (preL.ca ?? 0) - (curL.ca ?? 0);
-        dailyDrop = caLoss > 0 ? caLoss / days : 0;
-        if (dailyDrop > 0) dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
-    }
-
-    const dailyP2 = dailyP1 * RATIO_P2;
-    const dailyP3 = dailyP1 * RATIO_P3;
-    const dailyP4 = dailyP1 * RATIO_P4;
-
-    const gap = targetCa - currentCa;
-    let correctionP1_Daily = 0;
-    let correctionMsg = "✅ Levels match target.";
-
-    if (gap > 5) {
-        const totalCorrectionNeeded = gap / CA_IMPACT_FACTOR;
-        if (gap > 20) {
-            correctionP1_Daily = totalCorrectionNeeded / 3;
-            correctionMsg = `⚠️ Low Calcium (-${gap} ppm). Adding correction dose over 3 days.`;
-        } else {
-            correctionP1_Daily = totalCorrectionNeeded;
-            correctionMsg = `⚠️ Low Calcium (-${gap} ppm). Adding correction dose today.`;
-        }
-    }
-
-    const totalP1Today = dailyP1 + correctionP1_Daily;
-
-    calcResults.style.display = 'block';
-    calcResults.innerHTML = `
-        <h3>🧪 Red Sea Dosing Plan</h3>
-        <p>Daily Consumption: <b>${dailyDrop.toFixed(1)} ppm/day</b></p>
-        <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid #ddd;">
-            <tr style="background:#f0f0f0; font-weight:bold;">
-                <td style="padding:8px;">Product</td>
-                <td style="padding:8px;">Base</td>
-                <td style="padding:8px; color:#d63384;">Corr.</td>
-                <td style="padding:8px; background:#e3f2fd;">TOTAL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 1</b> (Ca)</td>
-                <td>${dailyP1.toFixed(1)}</td>
-                <td style="color:#d63384;">+ ${correctionP1_Daily.toFixed(1)}</td>
-                <td style="background:#e3f2fd; font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 2</b> (Alk)</td>
-                <td>${dailyP2.toFixed(1)}</td>
-                <td>-</td>
-                <td style="background:#e3f2fd;">${dailyP2.toFixed(1)} mL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 3</b> (Iodine)</td>
-                <td>${dailyP3.toFixed(1)}</td>
-                <td>-</td>
-                <td style="background:#e3f2fd;">${dailyP3.toFixed(1)} mL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 4</b> (Bio)</td>
-                <td>${dailyP4.toFixed(1)}</td>
-                <td>-</td>
-                <td style="background:#e3f2fd;">${dailyP4.toFixed(1)} mL</td>
-            </tr>
-        </table>
-        <p style="margin-top:10px; font-size:0.9em; color:#666;"><em>${correctionMsg}</em></p>
-    `;
 }
 
 // Initial load
