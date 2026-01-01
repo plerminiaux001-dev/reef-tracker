@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Reef Command Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Reef Tank Dashboard & Dosing Calculator</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,43 +17,51 @@
     </div>
 
     <div id="dashboard" class="tab-content active">
-        <div class="card" style="margin-bottom: 25px;">
+        <div class="card" style="margin-bottom: 20px;">
             <h2>Current Status</h2>
             <div class="status-grid" id="statusDisplay">
-                <div style="grid-column: span 3; padding: 20px;">
-                    <div class="spinner"></div>
-                    <div style="margin-top:10px; font-size:0.9em; color:#94a3b8;">Loading Data...</div>
-                </div>
+                <div class="status-box warn">Loading Cloud Data...</div>
             </div>
         </div>
 
         <div class="grid">
             <div class="card">
                 <h2>📝 Add New Log</h2>
-                <div class="form-group"><label>Date</label><input type="date" id="date"></div>
-                <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk" min="5" max="12"></div>
-                <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca" min="300" max="600"></div>
-                <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg" min="1000" max="1600"></div>
-                <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
-                <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
-                <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
+                <div class="form-group"><label for="date">Date</label><input type="date" id="date"></div>
+                <div class="form-group"><label for="alk">Alkalinity (dKH)</label><input type="number" step="0.1" id="alk" min="5" max="12"></div>
+                <div class="form-group"><label for="ca">Calcium (ppm)</label><input type="number" id="ca" min="300" max="600"></div>
+                <div class="form-group"><label for="mg">Magnesium (ppm)</label><input type="number" id="mg" min="1000" max="1600"></div>
+                <div class="form-group"><label for="no3">Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
+                <div class="form-group"><label for="po4">Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
+                <div class="form-group"><label for="ph">pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
                 <button id="saveEntryBtn">Save Entry</button>
             </div>
 
             <div class="card">
                 <h2>🧪 Dosing Assistant</h2>
-                <p style="color:var(--text-muted);">Red Sea Recipe Calculator</p>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <div class="form-group"><label>Current Ca</label><input type="number" id="calcCurrentCa" placeholder="..."></div>
-                    <div class="form-group"><label>Target Ca</label><input type="number" id="calcTargetCa" value="430"></div>
+                <p>Calculate your daily Red Sea recipe based on Calcium uptake.</p>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <div class="form-group">
+                        <label for="calcCurrentCa">Current Ca (ppm)</label>
+                        <input type="number" id="calcCurrentCa" placeholder="...">
+                    </div>
+                    <div class="form-group">
+                        <label for="calcTargetCa">Target Ca (ppm)</label>
+                        <input type="number" id="calcTargetCa" value="430">
+                    </div>
                 </div>
+
                 <button id="calcBtn">Calculate Recipe</button>
-                <div id="calc-results" style="display:none;"></div>
+                <div id="calc-results" aria-live="polite"></div>
             </div>
         </div>
 
         <div class="card">
-            <h2 style="margin-bottom: 15px;">📈 Trends</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="margin:0;">📈 Trends</h2>
+            </div>
+            
             <div class="chart-controls">
                 <label class="chart-check-label"><input type="checkbox" data-idx="0" checked> 🔵 Alk</label>
                 <label class="chart-check-label"><input type="checkbox" data-idx="1" checked> 🟣 Ca</label>
@@ -63,14 +70,15 @@
                 <label class="chart-check-label"><input type="checkbox" data-idx="4"> 🟤 PO4</label>
                 <label class="chart-check-label"><input type="checkbox" data-idx="5"> 🔴 pH</label>
             </div>
+
             <div class="chart-container">
                 <canvas id="tankChart"></canvas>
             </div>
         </div>
 
-        <div class="card" style="margin-top: 25px;">
-            <h2>History</h2>
-            <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
+        <div class="card" style="margin-top: 20px;">
+            <h2>History (Google Sheets)</h2>
+            <button id="refreshBtn" style="width: auto; float: right; padding: 5px 10px; background: #6c757d; color:white; border:none; border-radius:3px; cursor:pointer;">↻ Refresh</button>
             <table id="historyTable">
                 <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
                 <tbody></tbody>
@@ -78,34 +86,45 @@
         </div>
     </div>
 
-    <div id="instructions" class="tab-content">
-        <div class="card highlight" style="margin-bottom: 25px;">
+    <div id="instructions" class="tab-content" aria-hidden="true">
+        <div class="card highlight" style="margin-bottom: 20px; border-top-color: #6f42c1;">
             <h2>🤖 Hydros Blenny Configuration</h2>
-            <p style="color:var(--text-muted);">Setup guide for the 4-head doser.</p>
-            
-            <h3>1. Pump Mapping</h3>
+            <p>Setup guide for the 4-head doser using Red Sea Complete Reef Care.</p>
+            <h3>1. Pump Mapping & Tubing</h3>
             <div class="grid-small">
-                <div class="status-box" style="background:#6f42c1;">Doser 1<br><small>Ca (Master)</small></div>
-                <div class="status-box" style="background:#007bff;">Doser 2<br><small>Alk (2x)</small></div>
-                <div class="status-box" style="background:#20c997;">Doser 3<br><small>Iodine (0.5x)</small></div>
-                <div class="status-box" style="background:#f59e0b;">Doser 4<br><small>Bio (0.5x)</small></div>
+                <div class="status-box" style="background:#6f42c1;">
+                    Doser 1<br><strong>Part 1 (Ca+)</strong><br><small>Master Dose</small>
+                </div>
+                <div class="status-box" style="background:#007bff;">
+                    Doser 2<br><strong>Part 2 (Alk)</strong><br><small>2x Multiplier</small>
+                </div>
+                <div class="status-box" style="background:#20c997;">
+                    Doser 3<br><strong>Part 3 (Iodine)</strong><br><small>0.5x Multiplier</small>
+                </div>
+                <div class="status-box" style="background:#ffc107; color:#333;">
+                    Doser 4<br><strong>Part 4 (Bio)</strong><br><small>0.5x Multiplier</small>
+                </div>
             </div>
-
             <h3>2. Hydros App Settings</h3>
             <table class="info-table">
-                <thead><tr><th>Setting</th><th>Value</th><th>Notes</th></tr></thead>
+                <thead>
+                    <tr><th>Setting</th><th>Value</th><th>Notes</th></tr>
+                </thead>
                 <tbody>
-                    <tr><td>Output Type</td><td>Dosing Pump</td><td>Create 4 outputs</td></tr>
-                    <tr><td>Dosing Mode</td><td>Schedule (Simple)</td><td>Spreads over 24h</td></tr>
-                    <tr><td>Safe Range</td><td>On</td><td>Set max daily limit</td></tr>
+                    <tr><td>Output Type</td><td>Dosing Pump</td><td>Create 4 separate outputs.</td></tr>
+                    <tr><td>Dosing Mode</td><td>Schedule (Simple)</td><td>Spreads dose over 24h.</td></tr>
+                    <tr><td>Flow Rate</td><td><em>Calibrate!</em></td><td>Run calibration for each head.</td></tr>
+                    <tr><td>Safe Range</td><td>On</td><td>Set max daily limit (e.g. 50ml).</td></tr>
                 </tbody>
             </table>
-
-            <h3>3. Schedule Offsets</h3>
+            <h3>3. Schedule Offsets (Precipitation Prevention)</h3>
+            <p style="font-size:0.9em; color:#666;">Do not dose Ca and Alk at the exact same moment.</p>
             <table class="info-table">
-                <thead><tr><th>Pump</th><th>Start</th><th>Dose</th></tr></thead>
+                <thead>
+                    <tr><th>Pump</th><th>Start Time</th><th>Dosage Formula</th></tr>
+                </thead>
                 <tbody>
-                    <tr><td><strong>Doser 1</strong> (Ca)</td><td>00:00</td><td>Base Amount</td></tr>
+                    <tr><td><strong>Doser 1</strong> (Ca)</td><td>00:00</td><td>Base Amount (From Calculator)</td></tr>
                     <tr><td><strong>Doser 2</strong> (Alk)</td><td>00:30</td><td>2.0 x [Doser 1]</td></tr>
                     <tr><td><strong>Doser 3</strong> (Trace)</td><td>01:00</td><td>0.5 x [Doser 1]</td></tr>
                     <tr><td><strong>Doser 4</strong> (Trace)</td><td>01:30</td><td>0.5 x [Doser 1]</td></tr>
@@ -115,24 +134,29 @@
 
         <div class="card">
             <h2>📚 Red Sea Complete Reef Care</h2>
+            <p>A 4-part program based on Calcium uptake. All 4 parts are dosed in a fixed ratio.</p>
             <h3>1. Recommended Parameters</h3>
             <table class="info-table">
-                <thead><tr><th>Type</th><th>Salinity</th><th>Ca</th><th>Alk</th></tr></thead>
+                <thead>
+                    <tr><th>Type</th><th>Salinity</th><th>Calcium</th><th>Alkalinity</th></tr>
+                </thead>
                 <tbody>
-                    <tr><td>Mixed Reef</td><td>34 ppt</td><td>450</td><td>11.5</td></tr>
-                    <tr><td>SPS Dominant</td><td>35 ppt</td><td>430</td><td>8.0</td></tr>
-                    <tr><td>ULNS</td><td>33 ppt</td><td>410</td><td>7.0</td></tr>
+                    <tr><td>Mixed Reef</td><td>34 ppt</td><td>450 ppm</td><td>11.5 dKH</td></tr>
+                    <tr><td>SPS Dominant</td><td>35 ppt</td><td>430 ppm</td><td>8.0 dKH</td></tr>
+                    <tr><td>ULNS / Low Nutrients</td><td>33 ppt</td><td>410 ppm</td><td>7.0 dKH</td></tr>
                 </tbody>
             </table>
-
             <h3>2. Dosing Ratios</h3>
+            <p style="font-size:0.9em; color:#666;">The system uses Part 1 (Calcium) as the master dose. All other parts are calculated relative to it.</p>
             <table class="info-table">
-                <thead><tr><th>Supplement</th><th>Ratio</th><th>Per 1mL Ca</th></tr></thead>
+                <thead>
+                    <tr><th>Supplement</th><th>Ratio</th><th>Dose per 1mL of Part 1</th></tr>
+                </thead>
                 <tbody>
                     <tr><td><b>Part 1</b> (Ca & Mg)</td><td>1.0</td><td>1 mL</td></tr>
                     <tr><td><b>Part 2</b> (Alk & pH)</td><td>2.0</td><td>2 mL</td></tr>
-                    <tr><td><b>Part 3</b> (Iodine)</td><td>0.5</td><td>0.5 mL</td></tr>
-                    <tr><td><b>Part 4</b> (Bio)</td><td>0.5</td><td>0.5 mL</td></tr>
+                    <tr><td><b>Part 3</b> (Iodine & K)</td><td>0.5</td><td>0.5 mL</td></tr>
+                    <tr><td><b>Part 4</b> (Iron & Bio)</td><td>0.5</td><td>0.5 mL</td></tr>
                 </tbody>
             </table>
         </div>
@@ -141,21 +165,36 @@
     <div id="mixing" class="tab-content">
         <div class="card highlight" style="border-top-color: #0dcaf0;">
             <h2>🌊 Saltwater Mixing Station</h2>
-            <p><strong>Red Sea Coral Pro</strong> Calculator</p>
+            <p>Calculate <strong>Red Sea Coral Pro</strong> salt needed to reach your target salinity.</p>
+            
             <div class="grid">
-                <div class="form-group"><label>Water Vol (Gal)</label><input type="number" id="mixVol" value="5"></div>
-                <div class="form-group"><label>Target SG</label><input type="number" id="mixTarget" value="1.026" step="0.001"></div>
+                <div class="form-group">
+                    <label>Water Volume (Gallons)</label>
+                    <input type="number" id="mixVol" value="5" placeholder="e.g. 5">
+                </div>
+                <div class="form-group">
+                    <label>Target Salinity (SG)</label>
+                    <input type="number" id="mixTarget" value="1.026" step="0.001">
+                </div>
             </div>
-            <button id="btnMix" style="background:#0dcaf0; color:#0f172a;">Calculate Mix</button>
-            <div id="mixResult" style="display:none;">
-                <h3>🧂 Add to Water:</h3>
-                <div style="font-size: 1.5em; font-weight: bold;"><span id="resGrams">0</span> g</div>
-                <div style="color:var(--text-muted); margin-top:5px;">(~<span id="resCups">0</span> cups)</div>
+
+            <button id="btnMix" style="background-color: #0dcaf0; color: #000; font-weight:bold;">Calculate Mix</button>
+
+            <div id="mixResult" style="margin-top: 20px; display:none; padding: 15px; background: #e3f2fd; border-radius: 5px; color: #333;">
+                <h3 style="margin:0 0 10px 0;">🧂 Add to Water:</h3>
+                <div style="font-size: 1.5em; font-weight: bold;">
+                    <span id="resGrams">0</span> grams
+                </div>
+                <div style="color:#666; margin-top:5px;">
+                    (~<span id="resCups">0</span> cups)
+                </div>
+                <p style="margin-top:10px; font-size:0.8em; font-style:italic;">Calibrated for Red Sea Coral Pro (dense).</p>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script src="script.js"></script>
 </body>
 </html>
