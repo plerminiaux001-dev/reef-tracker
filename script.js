@@ -115,7 +115,7 @@ chartCheckboxes.forEach(cb => cb.addEventListener('change', () => {
     }
 }));
 
-// --- 💡 LIGHTING EDITOR & HEX QR LOGIC ---
+// --- 💡 LIGHTING EDITOR & QR LOGIC ---
 if(btnResetLights) btnResetLights.addEventListener('click', () => initLightChart());
 if(btnExportLights) btnExportLights.addEventListener('click', generateQR);
 
@@ -124,25 +124,24 @@ function initLightChart() {
 
     const hours = Array.from({length: 24}, (_, i) => i + ":00");
 
-    // Default "Reef Spec" Curve (Based on your decoded data)
-    // 10am - 8pm Peak. 
-    // High Blues (70-80%), Low White/Red (10-15%)
-    const highBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0];
-    const midBlue  = [0,0,0,0,0,0,0,0,5,20,30,40,40,40,40,30,20,5,0,0,0,0,0,0];
-    const lowWhite = [0,0,0,0,0,0,0,0,0,5,15,15,15,15,15,15,5,0,0,0,0,0,0,0];
+    // Defaults for "Reef Spec" (High Blue/UV, Low White/Red)
+    // Indexes match the datasets below:
+    // 0:White, 1:Blue, 2:Royal, 3:UV, 4:Red, 5:Green
+    const curveBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0]; // Ch B, C, D
+    const curveWhite = [0,0,0,0,0,0,0,0,0,5,20,20,20,20,20,20,5,0,0,0,0,0,0,0];   // Ch A, E, F
 
     lightChartInstance = new Chart(lightCtx, {
         type: 'line',
         data: {
             labels: hours,
             datasets: [
-                // Order matched to your Breakdown for clarity, but logic handles index mapping
-                { label: 'White (Ch1)',      data: [...lowWhite], borderColor: '#fcd34d', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'Royal Blue (Ch2)', data: [...highBlue], borderColor: '#0047ab', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'Blue (Ch3)',       data: [...midBlue],  borderColor: '#0096ff', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'Violet (Ch4)',     data: [...highBlue], borderColor: '#8b5cf6', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'UV (Ch5)',         data: [...highBlue], borderColor: '#701a75', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'Red/Grn (Ch6)',    data: [...lowWhite], borderColor: '#ef4444', backgroundColor:'transparent', tension: 0.4, hidden: true }
+                // 🛑 IMPORTANT: ORDER MUST MATCH NOOPSYCHE CHANNELS A-F
+                { label: 'A: White',      data: [...curveWhite], borderColor: '#fcd34d', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'B: Blue',       data: [...curveBlue],  borderColor: '#0096ff', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'C: Royal Blue', data: [...curveBlue],  borderColor: '#0047ab', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'D: Violet/UV',  data: [...curveBlue],  borderColor: '#8b5cf6', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'E: Red',        data: [...curveWhite], borderColor: '#ef4444', backgroundColor:'transparent', tension: 0.4, hidden: true },
+                { label: 'F: Green',      data: [...curveWhite], borderColor: '#10b981', backgroundColor:'transparent', tension: 0.4, hidden: true }
             ]
         },
         options: {
@@ -167,49 +166,44 @@ function initLightChart() {
 function generateQR() {
     if(!lightChartInstance) return;
     
-    // Dataset Indices in Chart:
-    // 0: White, 1: RoyalBlue, 2: Blue, 3: Violet, 4: UV, 5: Red
+    // Dataset Indices in Chart now match A-F perfectly:
+    // 0:White, 1:Blue, 2:Royal, 3:UV, 4:Red, 5:Green
     const ds = lightChartInstance.data.datasets;
     
     let hexString = "";
 
-    // Loop through 24 hours (0 to 23)
+    // Loop 24 Hours (0 to 23)
     for(let h=0; h<24; h++) {
         // 1. Hour (Hex)
         hexString += h.toString(16).padStart(2, '0').toUpperCase();
         
-        // 2. Minute (Always 00 for this editor)
+        // 2. Minute (Always 00)
         hexString += "00";
 
-        // 3. Channels (Convert 0-100 decimal to Hex)
-        // Ch1 (White) -> Dataset 0
-        hexString += Math.round(ds[0].data[h]).toString(16).padStart(2, '0').toUpperCase();
-        // Ch2 (Royal) -> Dataset 1
-        hexString += Math.round(ds[1].data[h]).toString(16).padStart(2, '0').toUpperCase();
-        // Ch3 (Blue)  -> Dataset 2
-        hexString += Math.round(ds[2].data[h]).toString(16).padStart(2, '0').toUpperCase();
-        // Ch4 (Viol)  -> Dataset 3
-        hexString += Math.round(ds[3].data[h]).toString(16).padStart(2, '0').toUpperCase();
-        // Ch5 (UV)    -> Dataset 4
-        hexString += Math.round(ds[4].data[h]).toString(16).padStart(2, '0').toUpperCase();
-        // Ch6 (Red)   -> Dataset 5
-        hexString += Math.round(ds[5].data[h]).toString(16).padStart(2, '0').toUpperCase();
+        // 3. Channels A-F (Hex)
+        for(let c=0; c<6; c++) {
+            let val = Math.round(ds[c].data[h]);
+            // Safety cap at 100
+            if(val > 100) val = 100;
+            if(val < 0) val = 0;
+            
+            hexString += val.toString(16).padStart(2, '0').toUpperCase();
+        }
     }
 
-    console.log("Generated Hex:", hexString);
+    console.log("Generated Noopsyche Hex:", hexString);
 
-    // Generate QR with Raw Hex String
+    // Generate QR
     qrArea.style.display = 'block';
     document.getElementById('qrcode').innerHTML = ""; 
     
-    // Noopsyche likely uses high error correction for dense data
     new QRCode(document.getElementById("qrcode"), {
         text: hexString,
         width: 256,
         height: 256,
         colorDark : "#000000",
         colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.L // Low is fine for text strings, keeps dots larger
+        correctLevel : QRCode.CorrectLevel.L
     });
 }
 
