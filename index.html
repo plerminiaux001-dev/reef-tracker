@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -83,7 +84,7 @@
     <div id="lighting" class="tab-content">
         <div class="card highlight" style="border-top-color: #fcd34d;">
             <h2>💡 Light Profile Generator</h2>
-            <p style="opacity: 0.7; margin-bottom: 20px;">Drag the points to shape your schedule.</p>
+            <p style="opacity: 0.7; margin-bottom: 20px;">Drag points to adjust. Click legend to hide/show channels.</p>
             
             <div class="chart-container" style="height: 400px; cursor: move;">
                 <canvas id="lightChart"></canvas>
@@ -91,10 +92,13 @@
 
             <div class="grid-small" style="margin-top: 25px;">
                 <button id="btnResetLights" style="background:#475569;">Reset to Flat</button>
-                <button id="btnExportLights" style="background:#fcd34d; color:#0f172a;">Generate Schedule</button>
+                <button id="btnExportLights" style="background:#fcd34d; color:#0f172a;">Generate QR Code</button>
             </div>
 
-            <div id="lightOutput" style="display:none; margin-top:20px; background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; font-family:monospace; white-space:pre-wrap; color:#fcd34d;"></div>
+            <div id="qrArea" style="display:none; text-align:center; margin-top:20px; padding:20px; background:white; border-radius:12px;">
+                <div id="qrcode" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
+                <div style="color:#0f172a; font-weight:bold;">Scan with Noopsyche App</div>
+            </div>
         </div>
     </div>
 
@@ -102,14 +106,13 @@
         <div class="card highlight" style="margin-bottom: 25px;">
             <h2>🤖 Hydros Blenny Configuration</h2>
             <p style="opacity: 0.7;">Setup guide for the 4-head doser.</p>
-            <h3>1. Pump Mapping</h3>
+             <h3>1. Pump Mapping</h3>
             <div class="grid-small">
                 <div class="status-box" style="background:#6f42c1;">Doser 1<br><small>Ca (Master)</small></div>
                 <div class="status-box" style="background:#007bff;">Doser 2<br><small>Alk (2x)</small></div>
                 <div class="status-box" style="background:#20c997;">Doser 3<br><small>Iodine (0.5x)</small></div>
                 <div class="status-box" style="background:#f59e0b;">Doser 4<br><small>Bio (0.5x)</small></div>
             </div>
-
              <h3>2. Hydros App Settings</h3>
             <table class="info-table">
                 <thead><tr><th>Setting</th><th>Value</th><th>Notes</th></tr></thead>
@@ -119,7 +122,6 @@
                     <tr><td>Safe Range</td><td>On</td><td>Set max daily limit</td></tr>
                 </tbody>
             </table>
-
             <h3>3. Schedule Offsets</h3>
             <table class="info-table">
                 <thead><tr><th>Pump</th><th>Start</th><th>Dose</th></tr></thead>
@@ -131,7 +133,6 @@
                 </tbody>
             </table>
         </div>
-
         <div class="card">
             <h2>📚 Red Sea Complete Reef Care</h2>
             <h3>1. Recommended Parameters</h3>
@@ -143,7 +144,6 @@
                     <tr><td>ULNS</td><td>33 ppt</td><td>410</td><td>7.0</td></tr>
                 </tbody>
             </table>
-
             <h3>2. Dosing Ratios</h3>
             <table class="info-table">
                 <thead><tr><th>Supplement</th><th>Ratio</th><th>Per 1mL Ca</th></tr></thead>
