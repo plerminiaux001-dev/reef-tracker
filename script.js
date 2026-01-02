@@ -2,7 +2,6 @@
 (function checkEnvironment() {
     const isDev = window.location.hostname.includes('dev--');
     const titleHeader = document.getElementById('appTitle');
-
     if (isDev) {
         document.title = '(DEV) Reef Command Center';
         if (titleHeader) {
@@ -19,7 +18,6 @@ const TANK_GAL = 35;
 const TANK_LITERS = TANK_GAL * 3.78541;
 const CA_IMPACT_PER_100L = 1.4; 
 const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
-
 const RATIO_P2 = 2.0; const RATIO_P3 = 0.5; const RATIO_P4 = 0.5;
 
 const RANGES = {
@@ -29,7 +27,7 @@ const RANGES = {
 
 let logs = [];
 let chartInstance = null;
-let lightChartInstance = null; // New chart instance
+let lightChartInstance = null;
 
 // Elements
 const statusDisplay = document.getElementById('statusDisplay');
@@ -55,7 +53,7 @@ const resCups = document.getElementById('resCups');
 const lightCtx = document.getElementById('lightChart');
 const btnResetLights = document.getElementById('btnResetLights');
 const btnExportLights = document.getElementById('btnExportLights');
-const lightOutput = document.getElementById('lightOutput');
+const qrArea = document.getElementById('qrArea');
 
 // Helpers
 const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
@@ -82,7 +80,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if(target) target.classList.add('active');
         btn.classList.add('active');
         
-        // Render Light Chart if tab is clicked
         if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) {
             initLightChart();
         }
@@ -119,90 +116,94 @@ chartCheckboxes.forEach(cb => cb.addEventListener('change', () => {
     }
 }));
 
-// --- 💡 LIGHTING EDITOR LOGIC ---
-if(btnResetLights) btnResetLights.addEventListener('click', initLightChart);
-if(btnExportLights) btnExportLights.addEventListener('click', () => {
-    if(!lightChartInstance) return;
-    const blues = lightChartInstance.data.datasets[0].data;
-    const whites = lightChartInstance.data.datasets[1].data;
-    
-    // Simple output format
-    let out = "--- 💡 CUSTOM SCHEDULE ---\nTime  | Blue | White\n--------------------\n";
-    blues.forEach((val, i) => {
-        if(val > 0 || whites[i] > 0) {
-            const time = i.toString().padStart(2, '0') + ":00";
-            out += `${time} | ${val}%  | ${whites[i]}%\n`;
-        }
-    });
-    lightOutput.innerText = out;
-    lightOutput.style.display = 'block';
-});
+// --- 💡 LIGHTING EDITOR & QR LOGIC ---
+if(btnResetLights) btnResetLights.addEventListener('click', () => initLightChart());
+if(btnExportLights) btnExportLights.addEventListener('click', generateQR);
 
 function initLightChart() {
-    if(lightChartInstance) {
-        lightChartInstance.destroy();
-    }
+    if(lightChartInstance) { lightChartInstance.destroy(); }
 
-    // Default "Flat" data
     const hours = Array.from({length: 24}, (_, i) => i + ":00");
-    const initBlues = Array(24).fill(0);
-    const initWhites = Array(24).fill(0);
+    const initData = (val) => Array(24).fill(val);
 
-    // Add a simple default curve (10am - 8pm)
-    for(let i=10; i<=20; i++) { initBlues[i] = 80; initWhites[i] = 40; }
-    // Ramps
-    initBlues[9]=20; initBlues[21]=20;
-    initWhites[9]=10; initWhites[21]=0;
+    // K7 Pro III Channels: White, Blue, Green, Violet, Cyan, Red
+    // We start with a basic bell curve for Blue/Violet/Cyan, and lower for White/Red/Green
+    const blueCurve = [0,0,0,0,0,0,0,0,10,20,50,80,85,85,85,80,50,20,10,0,0,0,0,0];
+    const whiteCurve = [0,0,0,0,0,0,0,0,0,0,10,20,25,25,25,20,10,0,0,0,0,0,0,0];
 
     lightChartInstance = new Chart(lightCtx, {
         type: 'line',
         data: {
             labels: hours,
             datasets: [
-                {
-                    label: 'Blue / UV Channel',
-                    data: initBlues,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                    fill: true,
-                    tension: 0.4,
-                    pointHitRadius: 25 // Easier to grab
-                },
-                {
-                    label: 'White Channel',
-                    data: initWhites,
-                    borderColor: '#fcd34d',
-                    backgroundColor: 'rgba(252, 211, 77, 0.2)',
-                    fill: true,
-                    tension: 0.4,
-                    pointHitRadius: 25
-                }
+                { label: 'Blue',   data: [...blueCurve], borderColor: '#007bff', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'Cyan',   data: [...blueCurve], borderColor: '#06b6d4', backgroundColor:'transparent', tension: 0.4, hidden: true },
+                { label: 'Violet', data: [...blueCurve], borderColor: '#8b5cf6', backgroundColor:'transparent', tension: 0.4, hidden: true },
+                { label: 'White',  data: [...whiteCurve], borderColor: '#fcd34d', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'Red',    data: [...whiteCurve], borderColor: '#ef4444', backgroundColor:'transparent', tension: 0.4, hidden: true },
+                { label: 'Green',  data: [...whiteCurve], borderColor: '#10b981', backgroundColor:'transparent', tension: 0.4, hidden: true }
             ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             scales: {
-                y: {
-                    min: 0, max: 100,
-                    grid: { color: 'rgba(255,255,255,0.1)' },
-                    title: { display: true, text: 'Intensity (%)', color: '#94a3b8' }
-                },
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.05)' }
-                }
+                y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.1)' } },
+                x: { grid: { color: 'rgba(255,255,255,0.05)' } }
             },
             plugins: {
                 dragData: {
-                    round: 1,
-                    showTooltip: true,
-                    onDragStart: function(e) { return true; }, // allow drag
+                    round: 1, showTooltip: true,
+                    onDragStart: function(e) { return true; },
                     onDrag: function(e, datasetIndex, index, value) { e.target.style.cursor = 'grabbing'; },
                     onDragEnd: function(e, datasetIndex, index, value) { e.target.style.cursor = 'default'; }
                 },
                 legend: { labels: { color: '#f1f5f9' } }
             }
         }
+    });
+}
+
+function generateQR() {
+    if(!lightChartInstance) return;
+    
+    // Extract data from chart
+    const ds = lightChartInstance.data.datasets;
+    // Map to K7 Pro III likely format (JSON array of points)
+    // Format: [{"h":hour, "m":0, "v":[w, b, g, v, c, r]}, ...]
+    let points = [];
+    for(let i=0; i<24; i++) {
+        // Only include points if at least one channel is > 0
+        let hasLight = false;
+        let vals = [];
+        // Channel Order matches Noopsyche usually: White, Blue, Green, Violet, Cyan, Red
+        // My datasets: 0=Blue, 1=Cyan, 2=Violet, 3=White, 4=Red, 5=Green
+        const w = ds[3].data[i];
+        const b = ds[0].data[i];
+        const g = ds[5].data[i];
+        const v = ds[2].data[i];
+        const c = ds[1].data[i];
+        const r = ds[4].data[i];
+
+        if(w>0||b>0||g>0||v>0||c>0||r>0) {
+            points.push({
+                h: i, m: 0,
+                v: [w, b, g, v, c, r] // Standard channel order
+            });
+        }
+    }
+
+    const jsonStr = JSON.stringify({ mode: "custom", points: points });
+    
+    // Generate QR
+    qrArea.style.display = 'block';
+    document.getElementById('qrcode').innerHTML = ""; // Clear old
+    new QRCode(document.getElementById("qrcode"), {
+        text: jsonStr,
+        width: 180,
+        height: 180,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
     });
 }
 
