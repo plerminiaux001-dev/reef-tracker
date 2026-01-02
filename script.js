@@ -1,12 +1,18 @@
 // --- 🕵️ ENVIRONMENT DETECTION 🕵️ ---
-// This runs on every load. If the URL contains "dev--", it turns on Debug Mode.
 (function checkEnvironment() {
+    // Check if URL contains "dev--"
     const isDev = window.location.hostname.includes('dev--');
-    const title = document.getElementById('appTitle');
+    const titleHeader = document.getElementById('appTitle');
 
-    if (isDev && title) {
-        title.innerHTML = '🚧 DEV MODE: 389 Reef Command Center';
-        title.style.color = '#d63384'; // Hot Pink
+    if (isDev) {
+        // 1. Update the Browser Tab
+        document.title = '(DEV) Reef Command Center';
+        
+        // 2. Update the Page Header (if it exists)
+        if (titleHeader) {
+            titleHeader.innerHTML = '🚧 DEV MODE: 389 Reef Command Center';
+            titleHeader.style.color = '#d63384'; // Hot Pink
+        }
         console.log("⚠️ Running in DEV environment");
     }
 })();
