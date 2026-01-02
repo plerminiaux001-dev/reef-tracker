@@ -18,7 +18,6 @@ const TANK_GAL = 35;
 const TANK_LITERS = TANK_GAL * 3.78541;
 const CA_IMPACT_PER_100L = 1.4; 
 const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
-const RATIO_P2 = 2.0; const RATIO_P3 = 0.5; const RATIO_P4 = 0.5;
 
 const RANGES = {
     alk: { min: 8.0, max: 10.0 }, ca: { min: 400, max: 460 }, mg: { min: 1250, max: 1450 },
@@ -116,7 +115,7 @@ chartCheckboxes.forEach(cb => cb.addEventListener('change', () => {
     }
 }));
 
-// --- 💡 LIGHTING EDITOR & QR LOGIC ---
+// --- 💡 LIGHTING EDITOR & HEX QR LOGIC ---
 if(btnResetLights) btnResetLights.addEventListener('click', () => initLightChart());
 if(btnExportLights) btnExportLights.addEventListener('click', generateQR);
 
@@ -124,24 +123,26 @@ function initLightChart() {
     if(lightChartInstance) { lightChartInstance.destroy(); }
 
     const hours = Array.from({length: 24}, (_, i) => i + ":00");
-    const initData = (val) => Array(24).fill(val);
 
-    // K7 Pro III Channels: White, Blue, Green, Violet, Cyan, Red
-    // We start with a basic bell curve for Blue/Violet/Cyan, and lower for White/Red/Green
-    const blueCurve = [0,0,0,0,0,0,0,0,10,20,50,80,85,85,85,80,50,20,10,0,0,0,0,0];
-    const whiteCurve = [0,0,0,0,0,0,0,0,0,0,10,20,25,25,25,20,10,0,0,0,0,0,0,0];
+    // Default "Reef Spec" Curve (Based on your decoded data)
+    // 10am - 8pm Peak. 
+    // High Blues (70-80%), Low White/Red (10-15%)
+    const highBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0];
+    const midBlue  = [0,0,0,0,0,0,0,0,5,20,30,40,40,40,40,30,20,5,0,0,0,0,0,0];
+    const lowWhite = [0,0,0,0,0,0,0,0,0,5,15,15,15,15,15,15,5,0,0,0,0,0,0,0];
 
     lightChartInstance = new Chart(lightCtx, {
         type: 'line',
         data: {
             labels: hours,
             datasets: [
-                { label: 'Blue',   data: [...blueCurve], borderColor: '#007bff', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'Cyan',   data: [...blueCurve], borderColor: '#06b6d4', backgroundColor:'transparent', tension: 0.4, hidden: true },
-                { label: 'Violet', data: [...blueCurve], borderColor: '#8b5cf6', backgroundColor:'transparent', tension: 0.4, hidden: true },
-                { label: 'White',  data: [...whiteCurve], borderColor: '#fcd34d', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'Red',    data: [...whiteCurve], borderColor: '#ef4444', backgroundColor:'transparent', tension: 0.4, hidden: true },
-                { label: 'Green',  data: [...whiteCurve], borderColor: '#10b981', backgroundColor:'transparent', tension: 0.4, hidden: true }
+                // Order matched to your Breakdown for clarity, but logic handles index mapping
+                { label: 'White (Ch1)',      data: [...lowWhite], borderColor: '#fcd34d', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'Royal Blue (Ch2)', data: [...highBlue], borderColor: '#0047ab', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'Blue (Ch3)',       data: [...midBlue],  borderColor: '#0096ff', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'Violet (Ch4)',     data: [...highBlue], borderColor: '#8b5cf6', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'UV (Ch5)',         data: [...highBlue], borderColor: '#701a75', backgroundColor:'transparent', tension: 0.4 },
+                { label: 'Red/Grn (Ch6)',    data: [...lowWhite], borderColor: '#ef4444', backgroundColor:'transparent', tension: 0.4, hidden: true }
             ]
         },
         options: {
@@ -152,7 +153,7 @@ function initLightChart() {
             },
             plugins: {
                 dragData: {
-                    round: 1, showTooltip: true,
+                    round: 0, showTooltip: true,
                     onDragStart: function(e) { return true; },
                     onDrag: function(e, datasetIndex, index, value) { e.target.style.cursor = 'grabbing'; },
                     onDragEnd: function(e, datasetIndex, index, value) { e.target.style.cursor = 'default'; }
@@ -166,44 +167,49 @@ function initLightChart() {
 function generateQR() {
     if(!lightChartInstance) return;
     
-    // Extract data from chart
+    // Dataset Indices in Chart:
+    // 0: White, 1: RoyalBlue, 2: Blue, 3: Violet, 4: UV, 5: Red
     const ds = lightChartInstance.data.datasets;
-    // Map to K7 Pro III likely format (JSON array of points)
-    // Format: [{"h":hour, "m":0, "v":[w, b, g, v, c, r]}, ...]
-    let points = [];
-    for(let i=0; i<24; i++) {
-        // Only include points if at least one channel is > 0
-        let hasLight = false;
-        let vals = [];
-        // Channel Order matches Noopsyche usually: White, Blue, Green, Violet, Cyan, Red
-        // My datasets: 0=Blue, 1=Cyan, 2=Violet, 3=White, 4=Red, 5=Green
-        const w = ds[3].data[i];
-        const b = ds[0].data[i];
-        const g = ds[5].data[i];
-        const v = ds[2].data[i];
-        const c = ds[1].data[i];
-        const r = ds[4].data[i];
+    
+    let hexString = "";
 
-        if(w>0||b>0||g>0||v>0||c>0||r>0) {
-            points.push({
-                h: i, m: 0,
-                v: [w, b, g, v, c, r] // Standard channel order
-            });
-        }
+    // Loop through 24 hours (0 to 23)
+    for(let h=0; h<24; h++) {
+        // 1. Hour (Hex)
+        hexString += h.toString(16).padStart(2, '0').toUpperCase();
+        
+        // 2. Minute (Always 00 for this editor)
+        hexString += "00";
+
+        // 3. Channels (Convert 0-100 decimal to Hex)
+        // Ch1 (White) -> Dataset 0
+        hexString += Math.round(ds[0].data[h]).toString(16).padStart(2, '0').toUpperCase();
+        // Ch2 (Royal) -> Dataset 1
+        hexString += Math.round(ds[1].data[h]).toString(16).padStart(2, '0').toUpperCase();
+        // Ch3 (Blue)  -> Dataset 2
+        hexString += Math.round(ds[2].data[h]).toString(16).padStart(2, '0').toUpperCase();
+        // Ch4 (Viol)  -> Dataset 3
+        hexString += Math.round(ds[3].data[h]).toString(16).padStart(2, '0').toUpperCase();
+        // Ch5 (UV)    -> Dataset 4
+        hexString += Math.round(ds[4].data[h]).toString(16).padStart(2, '0').toUpperCase();
+        // Ch6 (Red)   -> Dataset 5
+        hexString += Math.round(ds[5].data[h]).toString(16).padStart(2, '0').toUpperCase();
     }
 
-    const jsonStr = JSON.stringify({ mode: "custom", points: points });
-    
-    // Generate QR
+    console.log("Generated Hex:", hexString);
+
+    // Generate QR with Raw Hex String
     qrArea.style.display = 'block';
-    document.getElementById('qrcode').innerHTML = ""; // Clear old
+    document.getElementById('qrcode').innerHTML = ""; 
+    
+    // Noopsyche likely uses high error correction for dense data
     new QRCode(document.getElementById("qrcode"), {
-        text: jsonStr,
-        width: 180,
-        height: 180,
+        text: hexString,
+        width: 256,
+        height: 256,
         colorDark : "#000000",
         colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.M
+        correctLevel : QRCode.CorrectLevel.L // Low is fine for text strings, keeps dots larger
     });
 }
 
