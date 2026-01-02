@@ -16,7 +16,8 @@
 
     <div class="tab-nav">
         <button class="tab-btn active" data-target="dashboard">Dashboard</button>
-        <button class="tab-btn" data-target="lighting">Lighting Editor</button> <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
+        <button class="tab-btn" data-target="lighting">Lighting Editor</button>
+        <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
     </div>
 
@@ -84,10 +85,23 @@
     <div id="lighting" class="tab-content">
         <div class="card highlight" style="border-top-color: #fcd34d;">
             <h2>💡 Light Profile Generator</h2>
-            <p style="opacity: 0.7; margin-bottom: 20px;">Drag points to adjust. Click legend to hide/show channels.</p>
+            <p style="opacity: 0.7; margin-bottom: 20px;">
+                <strong>Click any point</strong> on the chart to edit precise values below.
+            </p>
             
-            <div class="chart-container" style="height: 400px; cursor: move;">
+            <div class="chart-container" style="height: 350px; cursor: crosshair;">
                 <canvas id="lightChart"></canvas>
+            </div>
+
+            <div class="card" style="background: rgba(0,0,0,0.2); margin-top: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3>🛠️ Manual Editor</h3>
+                    <select id="editorHour" style="width:auto; padding:5px 15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:6px;">
+                        </select>
+                </div>
+                
+                <div class="grid-small" id="manualInputs">
+                    </div>
             </div>
 
             <div class="grid-small" style="margin-top: 25px;">
