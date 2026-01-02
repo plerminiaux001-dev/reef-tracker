@@ -53,6 +53,8 @@ const lightCtx = document.getElementById('lightChart');
 const btnResetLights = document.getElementById('btnResetLights');
 const btnExportLights = document.getElementById('btnExportLights');
 const qrArea = document.getElementById('qrArea');
+const editorHour = document.getElementById('editorHour');
+const manualInputs = document.getElementById('manualInputs');
 
 // Helpers
 const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
@@ -115,9 +117,32 @@ chartCheckboxes.forEach(cb => cb.addEventListener('change', () => {
     }
 }));
 
-// --- 💡 LIGHTING EDITOR & QR LOGIC ---
+// --- 💡 LIGHTING EDITOR ---
+// Populate Hour Dropdown
+if(editorHour) {
+    for(let i=0; i<24; i++) {
+        let opt = document.createElement('option');
+        opt.value = i;
+        opt.text = i.toString().padStart(2, '0') + ":00";
+        editorHour.add(opt);
+    }
+    // Set default to 10am (start of typical peak)
+    editorHour.value = 10;
+    editorHour.addEventListener('change', refreshManualInputs);
+}
+
 if(btnResetLights) btnResetLights.addEventListener('click', () => initLightChart());
 if(btnExportLights) btnExportLights.addEventListener('click', generateQR);
+
+// Channel Config (Matches Noopsyche K7 Pro III Order)
+const CHANNELS = [
+    { name: 'White',  color: '#fcd34d', dsIndex: 0 },
+    { name: 'Blue',   color: '#0096ff', dsIndex: 1 },
+    { name: 'Royal',  color: '#0047ab', dsIndex: 2 },
+    { name: 'Violet', color: '#8b5cf6', dsIndex: 3 },
+    { name: 'UV',     color: '#701a75', dsIndex: 4 },
+    { name: 'Red',    color: '#ef4444', dsIndex: 5 } // Using Red for Ch6 (Red/Green)
+];
 
 function initLightChart() {
     if(lightChartInstance) { lightChartInstance.destroy(); }
@@ -125,23 +150,20 @@ function initLightChart() {
     const hours = Array.from({length: 24}, (_, i) => i + ":00");
 
     // Defaults for "Reef Spec" (High Blue/UV, Low White/Red)
-    // Indexes match the datasets below:
-    // 0:White, 1:Blue, 2:Royal, 3:UV, 4:Red, 5:Green
-    const curveBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0]; // Ch B, C, D
-    const curveWhite = [0,0,0,0,0,0,0,0,0,5,20,20,20,20,20,20,5,0,0,0,0,0,0,0];   // Ch A, E, F
+    const curveBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0];
+    const curveWhite = [0,0,0,0,0,0,0,0,0,5,20,20,20,20,20,20,5,0,0,0,0,0,0,0];
 
     lightChartInstance = new Chart(lightCtx, {
         type: 'line',
         data: {
             labels: hours,
             datasets: [
-                // 🛑 IMPORTANT: ORDER MUST MATCH NOOPSYCHE CHANNELS A-F
-                { label: 'A: White',      data: [...curveWhite], borderColor: '#fcd34d', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'B: Blue',       data: [...curveBlue],  borderColor: '#0096ff', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'C: Royal Blue', data: [...curveBlue],  borderColor: '#0047ab', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'D: Violet/UV',  data: [...curveBlue],  borderColor: '#8b5cf6', backgroundColor:'transparent', tension: 0.4 },
-                { label: 'E: Red',        data: [...curveWhite], borderColor: '#ef4444', backgroundColor:'transparent', tension: 0.4, hidden: true },
-                { label: 'F: Green',      data: [...curveWhite], borderColor: '#10b981', backgroundColor:'transparent', tension: 0.4, hidden: true }
+                { label: 'A: White',      data: [...curveWhite], borderColor: CHANNELS[0].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'B: Blue',       data: [...curveBlue],  borderColor: CHANNELS[1].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'C: Royal Blue', data: [...curveBlue],  borderColor: CHANNELS[2].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'D: Violet/UV',  data: [...curveBlue],  borderColor: CHANNELS[3].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'E: UV/Purple',  data: [...curveBlue],  borderColor: CHANNELS[4].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'F: Red/Green',  data: [...curveWhite], borderColor: CHANNELS[5].color, backgroundColor:'transparent', tension: 0.4, hidden: true }
             ]
         },
         options: {
@@ -150,50 +172,104 @@ function initLightChart() {
                 y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.1)' } },
                 x: { grid: { color: 'rgba(255,255,255,0.05)' } }
             },
+            onClick: (e) => {
+                // Feature: Click chart to select Hour
+                const points = lightChartInstance.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+                if (points.length) {
+                    const hourIndex = points[0].index;
+                    editorHour.value = hourIndex;
+                    refreshManualInputs();
+                }
+            },
             plugins: {
                 dragData: {
                     round: 0, showTooltip: true,
                     onDragStart: function(e) { return true; },
                     onDrag: function(e, datasetIndex, index, value) { e.target.style.cursor = 'grabbing'; },
-                    onDragEnd: function(e, datasetIndex, index, value) { e.target.style.cursor = 'default'; }
+                    onDragEnd: function(e, datasetIndex, index, value) { 
+                        e.target.style.cursor = 'default'; 
+                        // If we dragged the currently selected hour, update inputs
+                        if(index == editorHour.value) {
+                            refreshManualInputs();
+                        }
+                    }
                 },
                 legend: { labels: { color: '#f1f5f9' } }
             }
         }
     });
+
+    // Build the Manual Inputs for the first time
+    buildManualEditorUI();
+    refreshManualInputs();
+}
+
+function buildManualEditorUI() {
+    if(!manualInputs) return;
+    manualInputs.innerHTML = ''; // Clear
+
+    CHANNELS.forEach((ch, idx) => {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.style.marginBottom = '0';
+        
+        const label = document.createElement('label');
+        label.innerText = ch.name;
+        label.style.color = ch.color;
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 0; input.max = 100;
+        input.id = `input_ch_${idx}`;
+        // EVENT: Update Chart when typing
+        input.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value) || 0;
+            const hour = parseInt(editorHour.value);
+            // Update Chart Data
+            lightChartInstance.data.datasets[idx].data[hour] = val;
+            lightChartInstance.update('none'); // Update without animation for speed
+        });
+
+        div.appendChild(label);
+        div.appendChild(input);
+        manualInputs.appendChild(div);
+    });
+}
+
+function refreshManualInputs() {
+    if(!lightChartInstance || !manualInputs) return;
+    const hour = parseInt(editorHour.value);
+
+    // Loop through 6 channels and set input values
+    for(let i=0; i<6; i++) {
+        const val = lightChartInstance.data.datasets[i].data[hour];
+        const input = document.getElementById(`input_ch_${i}`);
+        if(input) input.value = Math.round(val);
+    }
 }
 
 function generateQR() {
     if(!lightChartInstance) return;
     
-    // Dataset Indices in Chart now match A-F perfectly:
-    // 0:White, 1:Blue, 2:Royal, 3:UV, 4:Red, 5:Green
+    // Dataset Indices in Chart now match A-F perfectly
     const ds = lightChartInstance.data.datasets;
-    
     let hexString = "";
 
-    // Loop 24 Hours (0 to 23)
+    // Loop 24 Hours
     for(let h=0; h<24; h++) {
-        // 1. Hour (Hex)
+        // 1. Hour
         hexString += h.toString(16).padStart(2, '0').toUpperCase();
-        
-        // 2. Minute (Always 00)
+        // 2. Minute (00)
         hexString += "00";
-
-        // 3. Channels A-F (Hex)
+        // 3. Channels A-F
         for(let c=0; c<6; c++) {
             let val = Math.round(ds[c].data[h]);
-            // Safety cap at 100
-            if(val > 100) val = 100;
-            if(val < 0) val = 0;
-            
+            if(val > 100) val = 100; if(val < 0) val = 0;
             hexString += val.toString(16).padStart(2, '0').toUpperCase();
         }
     }
 
-    console.log("Generated Noopsyche Hex:", hexString);
-
-    // Generate QR
+    console.log("Noopsyche Hex:", hexString);
     qrArea.style.display = 'block';
     document.getElementById('qrcode').innerHTML = ""; 
     
