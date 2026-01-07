@@ -5,7 +5,7 @@
     if (isDev) {
         document.title = '(DEV) Reef Command Center';
         if (titleHeader) {
-            titleHeader.innerHTML = '🚧 DEV MODE: 389 Reef Command Center';
+            titleHeader.innerHTML = '🚧 DEV: 389 Reef Command Center';
             titleHeader.style.color = '#d63384';
         }
         console.log("⚠️ Running in DEV environment");
