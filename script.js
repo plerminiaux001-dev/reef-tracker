@@ -1,48 +1,34 @@
 // --- 🕵️ ENVIRONMENT DETECTION 🕵️ ---
 (function checkEnvironment() {
-    // Check if URL contains "dev--"
     const isDev = window.location.hostname.includes('dev--');
     const titleHeader = document.getElementById('appTitle');
-
     if (isDev) {
-        // 1. Update the Browser Tab
         document.title = '(DEV) Reef Command Center';
-        
-        // 2. Update the Page Header (if it exists)
         if (titleHeader) {
-            titleHeader.innerHTML = '🚧 DEV MODE: 389 Reef Command Center';
-            titleHeader.style.color = '#d63384'; // Hot Pink
+            titleHeader.innerHTML = '🚧 DEV: 389 Reef Command Center';
+            titleHeader.style.color = '#d63384';
         }
         console.log("⚠️ Running in DEV environment");
     }
 })();
-//--- ⬇️ CONFIGURATION AREA ⬇️ ---
+
+// --- ⬇️ CONFIGURATION AREA ⬇️ ---
 const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec";
 const TANK_GAL = 35;
 const TANK_LITERS = TANK_GAL * 3.78541;
-const CA_IMPACT_PER_100L = 1.4; // ppm per 100L per mL
-const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); // ppm per mL for this tank
+const CA_IMPACT_PER_100L = 1.4; 
+const CA_IMPACT_FACTOR = CA_IMPACT_PER_100L * (100 / TANK_LITERS); 
 
-// Dosing Multipliers
-const RATIO_P2 = 2.0;
-const RATIO_P3 = 0.5;
-const RATIO_P4 = 0.5;
-
-// 🎨 SAFE RANGES
 const RANGES = {
-    alk: { min: 8.0, max: 10.0 },
-    ca:  { min: 400, max: 460 },
-    mg:  { min: 1250, max: 1450 },
-    no3: { min: 1,   max: 15 },
-    po4: { min: 0.02, max: 0.1 },
-    ph:  { min: 8.0, max: 8.4 }
+    alk: { min: 8.0, max: 10.0 }, ca: { min: 400, max: 460 }, mg: { min: 1250, max: 1450 },
+    no3: { min: 1, max: 15 }, po4: { min: 0.02, max: 0.1 }, ph: { min: 8.0, max: 8.4 }
 };
-// --- END CONFIGURATION ---
 
 let logs = [];
 let chartInstance = null;
+let lightChartInstance = null;
 
-// Cached elements
+// Elements
 const statusDisplay = document.getElementById('statusDisplay');
 const historyTbody = document.querySelector('#historyTable tbody');
 const saveEntryBtn = document.getElementById('saveEntryBtn');
@@ -55,7 +41,6 @@ const calcTargetCaInput = document.getElementById('calcTargetCa');
 const tankCtx = document.getElementById('tankChart').getContext('2d');
 const chartCheckboxes = document.querySelectorAll('.chart-check-label input');
 
-// Salt Mix Elements
 const btnMix = document.getElementById('btnMix');
 const mixVol = document.getElementById('mixVol');
 const mixTarget = document.getElementById('mixTarget');
@@ -63,394 +48,344 @@ const mixResult = document.getElementById('mixResult');
 const resGrams = document.getElementById('resGrams');
 const resCups = document.getElementById('resCups');
 
-// Helper: safely parse number
-const toNum = v => {
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : null;
+// Light Elements
+const lightCtx = document.getElementById('lightChart');
+const btnResetLights = document.getElementById('btnResetLights');
+const btnExportLights = document.getElementById('btnExportLights');
+const qrArea = document.getElementById('qrArea');
+const editorHour = document.getElementById('editorHour');
+const manualInputs = document.getElementById('manualInputs');
+
+// Helpers
+const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+const formatDate = s => {
+    if(!s) return '-';
+    let clean = s.toString().split('T')[0];
+    const p = clean.split('-');
+    return p.length===3 ? `${p[1]}/${p[2]}/${p[0]}` : clean;
+};
+const getStatusClass = (t, v) => {
+    if(v==null) return '';
+    const r = RANGES[t]; if(!r) return '';
+    if(v>=r.min && v<=r.max) return 'good';
+    const b = (r.max-r.min)*0.5;
+    return (v>=r.min-b && v<=r.max+b) ? 'warn' : 'bad';
 };
 
-// Helper: Determine color class
-const getStatusClass = (type, val) => {
-    if (val === null || val === undefined) return '';
-    const range = RANGES[type];
-    if (!range) return ''; 
-    if (val >= range.min && val <= range.max) return 'good';
-    const buffer = (range.max - range.min) * 0.5; 
-    if (val >= range.min - buffer && val <= range.max + buffer) return 'warn';
-    return 'bad';
-};
-
-// Helper: Format Date MM/DD/YYYY
-const formatDate = (isoString) => {
-    if (!isoString) return '-';
-    const cleanDate = isoString.toString().split('T')[0];
-    const parts = cleanDate.split('-');
-    if (parts.length !== 3) return cleanDate;
-    return `${parts[1]}/${parts[2]}/${parts[0]}`;
-};
-
-// Tab navigation
+// Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        const id = btn.dataset.target;
-        const target = document.getElementById(id);
-        if(target) {
-            target.classList.add('active');
-            btn.classList.add('active');
+        const target = document.getElementById(btn.dataset.target);
+        if(target) target.classList.add('active');
+        btn.classList.add('active');
+        
+        if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) {
+            initLightChart();
         }
     });
 });
 
-// Init date field
-if (dateInput) dateInput.valueAsDate = new Date();
-
-// Event listeners
+// Init
+if(dateInput) dateInput.valueAsDate = new Date();
 if(saveEntryBtn) saveEntryBtn.addEventListener('click', submitLog);
 if(refreshBtn) refreshBtn.addEventListener('click', () => loadData(true));
 if(calcBtn) calcBtn.addEventListener('click', calculateDosing);
 
-// Salt Mix Listener
+// Salt Mix
 if(btnMix) {
     btnMix.addEventListener('click', () => {
         const vol = parseFloat(mixVol.value);
         const sg = parseFloat(mixTarget.value);
-        
         if(!vol || !sg) return;
-
-        // CALIBRATION FOR RED SEA CORAL PRO
         const baseGramsPerGal = 145; 
-        
-        // Ratio adjustment
         const ratio = (sg - 1) / 0.026;
-        
         const totalGrams = vol * baseGramsPerGal * ratio;
         const totalCups = totalGrams / 280; 
-
         resGrams.innerText = Math.round(totalGrams);
         resCups.innerText = totalCups.toFixed(2);
         mixResult.style.display = 'block';
     });
 }
 
-// Checkbox listener for graph
-chartCheckboxes.forEach(cb => {
-    cb.addEventListener('change', () => {
-        if(chartInstance) {
-            const idx = parseInt(cb.dataset.idx);
-            const isChecked = cb.checked;
-            chartInstance.data.datasets[idx].hidden = !isChecked;
-            chartInstance.update();
-        }
-    });
-});
-
-// Fetch data
-async function loadData(forceRefresh = false) {
-    if (!statusDisplay) return;
-    
-    if (logs.length === 0 || forceRefresh) {
-        statusDisplay.innerHTML = `
-            <div style="grid-column: span 3; text-align: center; padding: 20px;">
-                <div class="spinner"></div>
-                <div style="margin-top: 10px; color: #94a3b8; font-size: 0.9em;">Syncing with Reef Cloud...</div>
-            </div>
-        `;
-    }
-
-    try {
-        const resp = await fetch(API_URL);
-        if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
-        const data = await resp.json();
-
-        logs = data.map(item => {
-            const rawDate = (item.date || '').toString().split('T')[0];
-            return {
-                date: formatDate(rawDate),
-                alk: toNum(item.alk),
-                ca: toNum(item.ca),
-                mg: toNum(item.mg),
-                no3: toNum(item.no3),
-                po4: toNum(item.po4),
-                ph: toNum(item.ph)
-            };
-        }).filter(item => item.date !== '-');
-
-        logs.sort((a,b) => new Date(a.date) - new Date(b.date));
-        renderAll();
-    } catch (err) {
-        console.error('loadData error', err);
-        statusDisplay.innerHTML = '<div class="status-box bad" style="grid-column: span 3;">Connection Failed</div>';
-    }
-}
-
-// Submit log
-async function submitLog() {
-    const btn = saveEntryBtn;
-    const originalText = btn.innerText;
-    btn.innerText = "Saving...";
-    btn.disabled = true;
-
-    const rawInputDate = (dateInput.value || '').trim();
-    
-    const entry = {
-        date: rawInputDate, 
-        alk: document.getElementById('alk').value.trim(),
-        ca: document.getElementById('ca').value.trim(),
-        mg: document.getElementById('mg').value.trim(),
-        no3: document.getElementById('no3').value.trim(),
-        po4: document.getElementById('po4').value.trim(),
-        ph: document.getElementById('ph').value.trim()
-    };
-
-    if (!entry.date || !entry.alk) {
-        alert("Date and Alkalinity are required!");
-        btn.innerText = originalText;
-        btn.disabled = false;
-        return;
-    }
-
-    try {
-        const resp = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entry)
-        });
-        if (!resp.ok) throw new Error('Server returned ' + resp.status);
-        try { await resp.json(); } catch (e) { }
-
-        alert("Saved to Cloud!");
-    } catch (err) {
-        console.warn('POST failed, attempting no-cors fallback', err);
-        try {
-            await fetch(API_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(entry)
-            });
-            alert("Saved to Cloud (fallback).");
-        } catch (err2) {
-            alert("Error saving: " + err2);
-            btn.innerText = originalText;
-            btn.disabled = false;
-            return;
-        }
-    }
-
-    logs.push({
-        date: formatDate(rawInputDate),
-        alk: toNum(entry.alk),
-        ca: toNum(entry.ca),
-        mg: toNum(entry.mg),
-        no3: toNum(entry.no3),
-        po4: toNum(entry.po4),
-        ph: toNum(entry.ph)
-    });
-    renderAll();
-
-    document.querySelectorAll('input[type=number]').forEach(i => i.value = '');
-    btn.innerText = originalText;
-    btn.disabled = false;
-}
-
-function renderAll() {
-    renderTable();
-    renderStatus();
-    renderChart();
-    if (logs.length > 0 && calcCurrentCaInput) {
-        const last = logs[logs.length - 1];
-        if (last && toNum(last.ca) !== null) calcCurrentCaInput.value = last.ca;
-    }
-}
-
-function renderTable() {
-    if (!historyTbody) return;
-    const frag = document.createDocumentFragment();
-    
-    [...logs].slice().reverse().forEach(log => {
-        const tr = document.createElement('tr');
-        const mkCell = (type, val) => {
-            const cls = getStatusClass(type, val);
-            const style = (cls === 'good' || cls === 'bad') ? 'color: white;' : '';
-            return `<td class="${cls}" style="${style}">${val ?? '-'}</td>`;
-        };
-
-        tr.innerHTML = `
-            <td>${log.date || '-'}</td>
-            ${mkCell('alk', log.alk)}
-            ${mkCell('ca', log.ca)}
-            ${mkCell('mg', log.mg)}
-            ${mkCell('no3', log.no3)}
-            ${mkCell('po4', log.po4)}
-            ${mkCell('ph', log.ph)}
-        `;
-        frag.appendChild(tr);
-    });
-    historyTbody.innerHTML = '';
-    historyTbody.appendChild(frag);
-}
-
-function renderStatus() {
-    if (!statusDisplay) return;
-    if (logs.length === 0) {
-        statusDisplay.innerHTML = '<div class="status-box warn">No Data</div>';
-        return;
-    }
-    const last = logs[logs.length-1];
-
-    const alkClass = getStatusClass('alk', last.alk);
-    const caClass = getStatusClass('ca', last.ca);
-    const no3Class = getStatusClass('no3', last.no3);
-
-    statusDisplay.innerHTML = `
-        <div class="status-box ${alkClass}">Alk: ${last.alk ?? '?'}</div>
-        <div class="status-box ${caClass}">Ca: ${last.ca ?? '?'}</div>
-        <div class="status-box ${no3Class}">NO3: ${last.no3 ?? '?'}</div>
-    `;
-}
-
-function renderChart() {
-    const labels = logs.map(l => l.date);
-    
-    const datasets = [
-        { label: 'Alk', data: logs.map(l => l.alk), borderColor: '#06b6d4', backgroundColor: '#06b6d4', yAxisID: 'y', spanGaps: true },
-        { label: 'Ca',  data: logs.map(l => l.ca),  borderColor: '#a855f7', backgroundColor: '#a855f7', yAxisID: 'y1', spanGaps: true },
-        { label: 'Mg',  data: logs.map(l => l.mg),  borderColor: '#f97316', backgroundColor: '#f97316', yAxisID: 'y1', spanGaps: true },
-        { label: 'NO3', data: logs.map(l => l.no3), borderColor: '#10b981', backgroundColor: '#10b981', yAxisID: 'y', spanGaps: true },
-        { label: 'PO4', data: logs.map(l => l.po4), borderColor: '#14b8a6', backgroundColor: '#14b8a6', yAxisID: 'y', spanGaps: true },
-        { label: 'pH',  data: logs.map(l => l.ph),  borderColor: '#ef4444', backgroundColor: '#ef4444', yAxisID: 'y', spanGaps: true }
-    ];
-
-    if (chartInstance) {
-        chartInstance.data.labels = labels;
-        datasets.forEach((ds, i) => { chartInstance.data.datasets[i].data = ds.data; });
+// Checkboxes
+chartCheckboxes.forEach(cb => cb.addEventListener('change', () => {
+    if(chartInstance) {
+        chartInstance.data.datasets[parseInt(cb.dataset.idx)].hidden = !cb.checked;
         chartInstance.update();
-        return;
     }
+}));
 
-    // ⬇️⬇️⬇️ THIS IS THE ONLY CHANGE FROM YOUR ORIGINAL FILE ⬇️⬇️⬇️
-    // Force Chart.js to use Light Grey for text and Subtle White for grid lines
-    Chart.defaults.color = '#94a3b8'; 
-    Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
-    // ⬆️⬆️⬆️ END OF CHANGE ⬆️⬆️⬆️
+// --- 💡 LIGHTING EDITOR ---
+if(editorHour) {
+    for(let i=0; i<24; i++) {
+        let opt = document.createElement('option');
+        opt.value = i;
+        opt.text = i.toString().padStart(2, '0') + ":00";
+        editorHour.add(opt);
+    }
+    editorHour.value = 10;
+    editorHour.addEventListener('change', refreshManualInputs);
+}
 
-    chartInstance = new Chart(tankCtx, {
+if(btnResetLights) btnResetLights.addEventListener('click', () => initLightChart());
+if(btnExportLights) btnExportLights.addEventListener('click', generateQR);
+
+const CHANNELS = [
+    { name: 'White',  color: '#fcd34d', dsIndex: 0 },
+    { name: 'Blue',   color: '#0096ff', dsIndex: 1 },
+    { name: 'Royal',  color: '#0047ab', dsIndex: 2 },
+    { name: 'Violet', color: '#8b5cf6', dsIndex: 3 },
+    { name: 'UV',      color: '#701a75', dsIndex: 4 },
+    { name: 'Red',    color: '#ef4444', dsIndex: 5 }
+];
+
+function initLightChart() {
+    if(lightChartInstance) { lightChartInstance.destroy(); }
+    const hours = Array.from({length: 24}, (_, i) => i + ":00");
+    const curveBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0];
+    const curveWhite = [0,0,0,0,0,0,0,0,0,5,20,20,20,20,20,20,5,0,0,0,0,0,0,0];
+
+    lightChartInstance = new Chart(lightCtx, {
         type: 'line',
-        data: { labels, datasets },
+        data: {
+            labels: hours,
+            datasets: [
+                { label: 'A: White',      data: [...curveWhite], borderColor: CHANNELS[0].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'B: Blue',        data: [...curveBlue],  borderColor: CHANNELS[1].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'C: Royal Blue', data: [...curveBlue],  borderColor: CHANNELS[2].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'D: Violet/UV',  data: [...curveBlue],  borderColor: CHANNELS[3].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'E: UV/Purple',  data: [...curveBlue],  borderColor: CHANNELS[4].color, backgroundColor:'transparent', tension: 0.4 },
+                { label: 'F: Red/Green',  data: [...curveWhite], borderColor: CHANNELS[5].color, backgroundColor:'transparent', tension: 0.4, hidden: true }
+            ]
+        },
         options: {
             responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: false } },
             scales: {
-                x: { 
-                    display: true, 
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' } // Subtle white grid
+                y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.1)' } },
+                x: { grid: { color: 'rgba(255,255,255,0.05)' } }
+            },
+            onClick: (e) => {
+                const points = lightChartInstance.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+                if (points.length) {
+                    const hourIndex = points[0].index;
+                    editorHour.value = hourIndex;
+                    refreshManualInputs();
+                }
+            },
+            plugins: {
+                dragData: {
+                    round: 0, showTooltip: true,
+                    onDragStart: function(e) { return true; },
+                    onDrag: function(e, datasetIndex, index, value) { e.target.style.cursor = 'grabbing'; },
+                    onDragEnd: function(e, datasetIndex, index, value) { 
+                        e.target.style.cursor = 'default'; 
+                        if(index == editorHour.value) {
+                            refreshManualInputs();
+                        }
+                    }
                 },
-                y: { 
-                    type: 'linear', display: true, position: 'left', 
-                    title: { display: true, text: 'Alk / pH / Nutrients', color: '#cbd5e1' }, 
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' } 
-                },
-                y1: { 
-                    type: 'linear', display: true, position: 'right', 
-                    title: { display: true, text: 'Calcium / Magnesium', color: '#cbd5e1' }, 
-                    grid: { drawOnChartArea: false } 
-                },
+                legend: { labels: { color: '#f1f5f9' } }
             }
         }
     });
-
-    chartCheckboxes.forEach((cb, idx) => {
-        chartInstance.data.datasets[idx].hidden = !cb.checked;
-    });
-    chartInstance.update();
+    buildManualEditorUI();
+    refreshManualInputs();
 }
 
-// --- CALCULATOR LOGIC ---
-function calculateDosing() {
-    const currentCa = toNum(calcCurrentCaInput.value);
-    const targetCa = toNum(calcTargetCaInput.value);
+function buildManualEditorUI() {
+    if(!manualInputs) return;
+    manualInputs.innerHTML = ''; 
+    CHANNELS.forEach((ch, idx) => {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.style.marginBottom = '0';
+        const label = document.createElement('label');
+        label.innerText = ch.name;
+        label.style.color = ch.color;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 0; input.max = 100;
+        input.id = `input_ch_${idx}`;
+        input.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value) || 0;
+            const hour = parseInt(editorHour.value);
+            lightChartInstance.data.datasets[idx].data[hour] = val;
+            lightChartInstance.update('none'); 
+        });
+        div.appendChild(label);
+        div.appendChild(input);
+        manualInputs.appendChild(div);
+    });
+}
 
-    if (currentCa === null || targetCa === null) {
-        alert("Please enter Current and Target Calcium.");
-        return;
+function refreshManualInputs() {
+    if(!lightChartInstance || !manualInputs) return;
+    const hour = parseInt(editorHour.value);
+    for(let i=0; i<6; i++) {
+        const val = lightChartInstance.data.datasets[i].data[hour];
+        const input = document.getElementById(`input_ch_${i}`);
+        if(input) input.value = Math.round(val);
     }
+}
 
-    let dailyP1 = 0;
-    let dailyDrop = 0;
-
-    const caLogs = logs.filter(l => toNum(l.ca) !== null);
-    if (caLogs.length >= 2) {
-        const curL = caLogs[caLogs.length-1];
-        const preL = caLogs[caLogs.length-2];
-        const days = Math.abs((new Date(curL.date) - new Date(preL.date)) / (1000*60*60*24)) || 1;
-        const caLoss = (preL.ca ?? 0) - (curL.ca ?? 0);
-        dailyDrop = caLoss > 0 ? caLoss / days : 0;
-        if (dailyDrop > 0) dailyP1 = dailyDrop / CA_IMPACT_FACTOR;
-    }
-
-    const dailyP2 = dailyP1 * RATIO_P2;
-    const dailyP3 = dailyP1 * RATIO_P3;
-    const dailyP4 = dailyP1 * RATIO_P4;
-
-    const gap = targetCa - currentCa;
-    let correctionP1_Daily = 0;
-    let correctionMsg = "✅ Levels match target.";
-
-    if (gap > 5) {
-        const totalCorrectionNeeded = gap / CA_IMPACT_FACTOR;
-        if (gap > 20) {
-            correctionP1_Daily = totalCorrectionNeeded / 3;
-            correctionMsg = `⚠️ Low Calcium (-${gap} ppm). Adding correction dose over 3 days.`;
-        } else {
-            correctionP1_Daily = totalCorrectionNeeded;
-            correctionMsg = `⚠️ Low Calcium (-${gap} ppm). Adding correction dose today.`;
+function generateQR() {
+    if(!lightChartInstance) return;
+    const ds = lightChartInstance.data.datasets;
+    let hexString = "";
+    for(let h=0; h<24; h++) {
+        hexString += h.toString(16).padStart(2, '0').toUpperCase();
+        hexString += "00";
+        for(let c=0; c<6; c++) {
+            let val = Math.round(ds[c].data[h]);
+            if(val > 100) val = 100; if(val < 0) val = 0;
+            hexString += val.toString(16).padStart(2, '0').toUpperCase();
         }
     }
+    qrArea.style.display = 'block';
+    document.getElementById('qrcode').innerHTML = ""; 
+    new QRCode(document.getElementById("qrcode"), {
+        text: hexString,
+        width: 256,
+        height: 256,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.L
+    });
+}
 
-    const totalP1Today = dailyP1 + correctionP1_Daily;
+// Load Data
+async function loadData(force) {
+    if(!statusDisplay) return;
+    if(logs.length===0 || force) statusDisplay.innerHTML = `<div style="grid-column:span 3;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;color:#94a3b8;">Connecting...</div></div>`;
+    try {
+        const d = await (await fetch(API_URL)).json();
+        logs = d.map(i => ({
+            date: formatDate(i.date),
+            alk: toNum(i.alk), ca: toNum(i.ca), mg: toNum(i.mg),
+            no3: toNum(i.no3), po4: toNum(i.po4), ph: toNum(i.ph)
+        })).filter(i => i.date !== '-').sort((a,b) => new Date(a.date) - new Date(b.date));
+        renderAll();
+    } catch(e) { statusDisplay.innerHTML = '<div class="status-box bad" style="grid-column:span 3;">Connection Failed</div>'; }
+}
+
+async function submitLog() {
+    const btn = saveEntryBtn; const txt = btn.innerText;
+    btn.innerText = "Saving..."; btn.disabled = true;
+    const rawD = (dateInput.value||'').trim();
+    const entry = {
+        date: rawD, alk: document.getElementById('alk').value, ca: document.getElementById('ca').value,
+        mg: document.getElementById('mg').value, no3: document.getElementById('no3').value,
+        po4: document.getElementById('po4').value, ph: document.getElementById('ph').value
+    };
+    if(!entry.date || !entry.alk) { alert('Date/Alk required'); btn.innerText=txt; btn.disabled=false; return; }
+    try { await fetch(API_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(entry) }); } 
+    catch(e) { alert("Error: "+e); }
+    logs.push({ date: formatDate(rawD), alk: toNum(entry.alk), ca: toNum(entry.ca), mg: toNum(entry.mg), no3: toNum(entry.no3), po4: toNum(entry.po4), ph: toNum(entry.ph) });
+    renderAll();
+    alert("Saved!"); btn.innerText=txt; btn.disabled=false;
+    document.querySelectorAll('input[type=number]').forEach(i => i.value='');
+}
+
+function renderAll() {
+    if(!logs.length) return;
+    const l = logs[logs.length-1];
+    statusDisplay.innerHTML = `
+        <div class="status-box ${getStatusClass('alk',l.alk)}">Alk: ${l.alk??'?'}</div>
+        <div class="status-box ${getStatusClass('ca',l.ca)}">Ca: ${l.ca??'?'}</div>
+        <div class="status-box ${getStatusClass('no3',l.no3)}">NO3: ${l.no3??'?'}</div>`;
+    if(calcCurrentCaInput && l.ca) calcCurrentCaInput.value = l.ca;
+
+    historyTbody.innerHTML = [...logs].slice().reverse().map(i => `
+        <tr><td>${i.date}</td>
+        <td class="${getStatusClass('alk',i.alk)}">${i.alk??'-'}</td><td class="${getStatusClass('ca',i.ca)}">${i.ca??'-'}</td>
+        <td class="${getStatusClass('mg',i.mg)}">${i.mg??'-'}</td><td class="${getStatusClass('no3',i.no3)}">${i.no3??'-'}</td>
+        <td class="${getStatusClass('po4',i.po4)}">${i.po4??'-'}</td><td class="${getStatusClass('ph',i.ph)}">${i.ph??'-'}</td></tr>`
+    ).join('');
+
+    const lbl = logs.map(x=>x.date);
+    const ds = [
+        {l:'Alk',d:'alk',c:'#06b6d4',y:'y'}, {l:'Ca',d:'ca',c:'#a855f7',y:'y1'},
+        {l:'Mg',d:'mg',c:'#f97316',y:'y1'}, {l:'NO3',d:'no3',c:'#10b981',y:'y'},
+        {l:'PO4',d:'po4',c:'#14b8a6',y:'y'}, {l:'pH',d:'ph',c:'#ef4444',y:'y'}
+    ].map((cfg,i) => ({
+        label: cfg.l, data: logs.map(x=>x[cfg.d]), borderColor: cfg.c, backgroundColor: cfg.c, 
+        yAxisID: cfg.y, spanGaps: true, hidden: !chartCheckboxes[i].checked
+    }));
+
+    if(chartInstance) { chartInstance.data.labels=lbl; chartInstance.data.datasets.forEach((d,i)=>d.data=ds[i].data); chartInstance.update(); }
+    else {
+        Chart.defaults.color = '#94a3b8'; 
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+        chartInstance = new Chart(tankCtx, {
+            type: 'line', data: { labels: lbl, datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false, interaction: { mode:'index', intersect:false },
+                plugins: { legend: { display:false } },
+                scales: { 
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { position:'left', title:{display:true, text:'Alk / Nutrients', color:'#cbd5e1'}, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y1: { position:'right', grid:{drawOnChartArea:false}, title:{display:true, text:'Ca / Mg', color:'#cbd5e1'} }
+                }
+            }
+        });
+    }
+}
+
+// --- 🧪 THE FIXED CALCULATOR LOGIC ---
+function calculateDosing() {
+    const cur = toNum(calcCurrentCaInput.value), tgt = toNum(calcTargetCaInput.value);
+    if(!cur || !tgt) return alert("Enter Calcium values");
+    
+    let drop = 0, p1 = 0;
+    const cl = logs.filter(l => l.ca != null);
+    
+    // 1. Calculate Daily Consumption (Maintenance)
+    if(cl.length >= 2) {
+        const n = cl[cl.length-1], o = cl[cl.length-2];
+        const days = Math.abs((new Date(n.date) - new Date(o.date)) / (8.64e7)) || 1;
+        drop = Math.max(0, (o.ca - n.ca) / days);
+        p1 = drop / CA_IMPACT_FACTOR;
+    }
+
+    // 2. Calculate Correction (Gap)
+    const gap = tgt - cur;
+    const totalCorrNeeded = gap > 5 ? (gap / CA_IMPACT_FACTOR) : 0;
+    const daysToSplit = gap > 20 ? 3 : 1;
+    const corrToday = totalCorrNeeded / daysToSplit;
+
+    // 3. Define Final Daily Doses (Applying Red Sea Ratios ONLY to consumption)
+    const totP1 = p1 + corrToday; // Calcium gets the correction
+    const totP2 = p1 * 2.0;       // Alk stays linked to coral growth
+    const totP3 = p1 * 0.5;       // Iodine stays linked to coral growth
+    const totP4 = p1 * 0.5;       // Bio stays linked to coral growth
 
     calcResults.style.display = 'block';
     calcResults.innerHTML = `
-        <h3>🧪 Red Sea Dosing Plan</h3>
-        <p>Daily Consumption: <b>${dailyDrop.toFixed(1)} ppm/day</b></p>
-        <table style="width:100%; border-collapse: collapse; text-align: center; border:1px solid rgba(255,255,255,0.1);">
-            <tr style="background:rgba(0,0,0,0.2); font-weight:bold;">
-                <td style="padding:8px;">Product</td>
-                <td style="padding:8px;">Base</td>
-                <td style="padding:8px; color:#d63384;">Corr.</td>
-                <td style="padding:8px; background:rgba(6,182,212,0.15);">TOTAL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 1</b> (Ca)</td>
-                <td>${dailyP1.toFixed(1)}</td>
-                <td style="color:#d63384;">+ ${correctionP1_Daily.toFixed(1)}</td>
-                <td style="background:rgba(6,182,212,0.15); font-weight:bold;">${totalP1Today.toFixed(1)} mL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 2</b> (Alk)</td>
-                <td>${dailyP2.toFixed(1)}</td>
-                <td>-</td>
-                <td style="background:rgba(6,182,212,0.15);">${dailyP2.toFixed(1)} mL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 3</b> (Iodine)</td>
-                <td>${dailyP3.toFixed(1)}</td>
-                <td>-</td>
-                <td style="background:rgba(6,182,212,0.15);">${dailyP3.toFixed(1)} mL</td>
-            </tr>
-            <tr>
-                <td style="text-align:left; padding:8px;"><b>Part 4</b> (Bio)</td>
-                <td>${dailyP4.toFixed(1)}</td>
-                <td>-</td>
-                <td style="background:rgba(6,182,212,0.15);">${dailyP4.toFixed(1)} mL</td>
-            </tr>
-        </table>
-        <p style="margin-top:10px; font-size:0.9em; color:#94a3b8;"><em>${correctionMsg}</em></p>
-    `;
+        <h3 style="color:#f1f5f9; margin-bottom:5px;">🧪 Red Sea Plan</h3>
+        <p style="margin:0; font-size:0.9em; color:#94a3b8;">Daily Consumption: <b>${drop.toFixed(1)} ppm/day</b></p>
+        
+        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+            <div style="color:#cbd5e1;"><b>Part 1 (Ca)</b></div><div style="font-weight:bold; color:#a855f7;">${totP1.toFixed(1)} mL</div>
+            <div style="color:#cbd5e1;">Part 2 (Alk)</div><div style="color:#38bdf8;">${totP2.toFixed(1)} mL</div>
+            <div style="color:#cbd5e1;">Part 3 (Iod)</div><div>${totP3.toFixed(1)} mL</div>
+            <div style="color:#cbd5e1;">Part 4 (Bio)</div><div>${totP4.toFixed(1)} mL</div>
+        </div>
+
+        <div style="margin-top:15px; padding:10px; border:1px dashed #475569; border-radius:8px;">
+            <h4 style="margin:0 0 5px 0; font-size:0.85em; color:#38bdf8; text-transform:uppercase;">📱 Blenny Pump Settings (Auto)</h4>
+            <div style="font-family:monospace; font-size:0.9em; color:#cbd5e1; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; margin-bottom:5px;">
+                P1: 4.0mL | P2: 8.0mL | P3: 2.0mL | P4: 2.0mL
+            </div>
+            <p style="margin:0; font-size:0.75em; color:#94a3b8;">
+                *Note: Your Blenny handles maintenance. <br>To reach target, manually add <b>${corrToday.toFixed(1)}mL</b> of Part 1 today.
+            </p>
+        </div>
+
+        <p style="margin-top:10px; font-size:0.85em; color:${gap > 20 ? '#fbbf24' : '#94a3b8'};">
+            ${gap > 5 ? `⚠️ Correction included: ${corrToday.toFixed(1)}mL boost for ${daysToSplit} day(s).` : '✅ Levels match target'}
+        </p>`;
 }
 
-// Initial load
 loadData();

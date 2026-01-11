@@ -6,6 +6,9 @@
     <title>Reef Command Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -13,6 +16,7 @@
 
     <div class="tab-nav">
         <button class="tab-btn active" data-target="dashboard">Dashboard</button>
+        <button class="tab-btn" data-target="lighting">Lighting Editor</button>
         <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
     </div>
@@ -78,20 +82,52 @@
         </div>
     </div>
 
+    <div id="lighting" class="tab-content">
+        <div class="card highlight" style="border-top-color: #fcd34d;">
+            <h2>💡 Light Profile Generator</h2>
+            <p style="opacity: 0.7; margin-bottom: 20px;">
+                <strong>Click any point</strong> on the chart to edit precise values below.
+            </p>
+            
+            <div class="chart-container" style="height: 350px; cursor: crosshair;">
+                <canvas id="lightChart"></canvas>
+            </div>
+
+            <div class="card" style="background: rgba(0,0,0,0.2); margin-top: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3>🛠️ Manual Editor</h3>
+                    <select id="editorHour" style="width:auto; padding:5px 15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:6px;">
+                        </select>
+                </div>
+                
+                <div class="grid-small" id="manualInputs">
+                    </div>
+            </div>
+
+            <div class="grid-small" style="margin-top: 25px;">
+                <button id="btnResetLights" style="background:#475569;">Reset to Flat</button>
+                <button id="btnExportLights" style="background:#fcd34d; color:#0f172a;">Generate QR Code</button>
+            </div>
+
+            <div id="qrArea" style="display:none; text-align:center; margin-top:20px; padding:20px; background:white; border-radius:12px;">
+                <div id="qrcode" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
+                <div style="color:#0f172a; font-weight:bold;">Scan with Noopsyche App</div>
+            </div>
+        </div>
+    </div>
+
     <div id="instructions" class="tab-content">
         <div class="card highlight" style="margin-bottom: 25px;">
             <h2>🤖 Hydros Blenny Configuration</h2>
             <p style="opacity: 0.7;">Setup guide for the 4-head doser.</p>
-            
-            <h3>1. Pump Mapping</h3>
+             <h3>1. Pump Mapping</h3>
             <div class="grid-small">
                 <div class="status-box" style="background:#6f42c1;">Doser 1<br><small>Ca (Master)</small></div>
                 <div class="status-box" style="background:#007bff;">Doser 2<br><small>Alk (2x)</small></div>
                 <div class="status-box" style="background:#20c997;">Doser 3<br><small>Iodine (0.5x)</small></div>
                 <div class="status-box" style="background:#f59e0b;">Doser 4<br><small>Bio (0.5x)</small></div>
             </div>
-
-            <h3>2. Hydros App Settings</h3>
+             <h3>2. Hydros App Settings</h3>
             <table class="info-table">
                 <thead><tr><th>Setting</th><th>Value</th><th>Notes</th></tr></thead>
                 <tbody>
@@ -100,7 +136,6 @@
                     <tr><td>Safe Range</td><td>On</td><td>Set max daily limit</td></tr>
                 </tbody>
             </table>
-
             <h3>3. Schedule Offsets</h3>
             <table class="info-table">
                 <thead><tr><th>Pump</th><th>Start</th><th>Dose</th></tr></thead>
@@ -112,7 +147,6 @@
                 </tbody>
             </table>
         </div>
-
         <div class="card">
             <h2>📚 Red Sea Complete Reef Care</h2>
             <h3>1. Recommended Parameters</h3>
@@ -124,7 +158,6 @@
                     <tr><td>ULNS</td><td>33 ppt</td><td>410</td><td>7.0</td></tr>
                 </tbody>
             </table>
-
             <h3>2. Dosing Ratios</h3>
             <table class="info-table">
                 <thead><tr><th>Supplement</th><th>Ratio</th><th>Per 1mL Ca</th></tr></thead>
@@ -155,7 +188,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
