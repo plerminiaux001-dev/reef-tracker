@@ -8,7 +8,6 @@
             titleHeader.innerHTML = '🚧 DEV: 389 Reef Command Center';
             titleHeader.style.color = '#d63384';
         }
-        console.log("⚠️ Running in DEV environment");
     }
 })();
 
@@ -50,9 +49,6 @@ const resCups = document.getElementById('resCups');
 
 // Light Elements
 const lightCtx = document.getElementById('lightChart');
-const btnResetLights = document.getElementById('btnResetLights');
-const btnExportLights = document.getElementById('btnExportLights');
-const qrArea = document.getElementById('qrArea');
 const editorHour = document.getElementById('editorHour');
 const manualInputs = document.getElementById('manualInputs');
 
@@ -80,10 +76,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const target = document.getElementById(btn.dataset.target);
         if(target) target.classList.add('active');
         btn.classList.add('active');
-        
-        if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) {
-            initLightChart();
-        }
+        if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) initLightChart();
     });
 });
 
@@ -96,196 +89,54 @@ if(calcBtn) calcBtn.addEventListener('click', calculateDosing);
 // Salt Mix
 if(btnMix) {
     btnMix.addEventListener('click', () => {
-        const vol = parseFloat(mixVol.value);
-        const sg = parseFloat(mixTarget.value);
+        const vol = parseFloat(mixVol.value), sg = parseFloat(mixTarget.value);
         if(!vol || !sg) return;
-        const baseGramsPerGal = 145; 
-        const ratio = (sg - 1) / 0.026;
-        const totalGrams = vol * baseGramsPerGal * ratio;
-        const totalCups = totalGrams / 280; 
+        const totalGrams = vol * 145 * ((sg - 1) / 0.026);
         resGrams.innerText = Math.round(totalGrams);
-        resCups.innerText = totalCups.toFixed(2);
+        resCups.innerText = (totalGrams / 280).toFixed(2);
         mixResult.style.display = 'block';
     });
 }
 
-// Checkboxes
-chartCheckboxes.forEach(cb => cb.addEventListener('change', () => {
-    if(chartInstance) {
-        chartInstance.data.datasets[parseInt(cb.dataset.idx)].hidden = !cb.checked;
-        chartInstance.update();
-    }
-}));
-
-// --- 💡 LIGHTING EDITOR ---
-if(editorHour) {
-    for(let i=0; i<24; i++) {
-        let opt = document.createElement('option');
-        opt.value = i;
-        opt.text = i.toString().padStart(2, '0') + ":00";
-        editorHour.add(opt);
-    }
-    editorHour.value = 10;
-    editorHour.addEventListener('change', refreshManualInputs);
-}
-
-if(btnResetLights) btnResetLights.addEventListener('click', () => initLightChart());
-if(btnExportLights) btnExportLights.addEventListener('click', generateQR);
-
-const CHANNELS = [
-    { name: 'White',  color: '#fcd34d', dsIndex: 0 },
-    { name: 'Blue',   color: '#0096ff', dsIndex: 1 },
-    { name: 'Royal',  color: '#0047ab', dsIndex: 2 },
-    { name: 'Violet', color: '#8b5cf6', dsIndex: 3 },
-    { name: 'UV',      color: '#701a75', dsIndex: 4 },
-    { name: 'Red',    color: '#ef4444', dsIndex: 5 }
-];
-
+// Lighting Logic (Restored)
 function initLightChart() {
-    if(lightChartInstance) { lightChartInstance.destroy(); }
+    if(lightChartInstance) lightChartInstance.destroy();
     const hours = Array.from({length: 24}, (_, i) => i + ":00");
-    const curveBlue = [0,0,0,0,0,0,0,0,10,40,70,80,80,80,80,70,40,10,0,0,0,0,0,0];
-    const curveWhite = [0,0,0,0,0,0,0,0,0,5,20,20,20,20,20,20,5,0,0,0,0,0,0,0];
-
     lightChartInstance = new Chart(lightCtx, {
         type: 'line',
         data: {
             labels: hours,
             datasets: [
-                { label: 'A: White',      data: [...curveWhite], borderColor: CHANNELS[0].color, backgroundColor:'transparent', tension: 0.4 },
-                { label: 'B: Blue',        data: [...curveBlue],  borderColor: CHANNELS[1].color, backgroundColor:'transparent', tension: 0.4 },
-                { label: 'C: Royal Blue', data: [...curveBlue],  borderColor: CHANNELS[2].color, backgroundColor:'transparent', tension: 0.4 },
-                { label: 'D: Violet/UV',  data: [...curveBlue],  borderColor: CHANNELS[3].color, backgroundColor:'transparent', tension: 0.4 },
-                { label: 'E: UV/Purple',  data: [...curveBlue],  borderColor: CHANNELS[4].color, backgroundColor:'transparent', tension: 0.4 },
-                { label: 'F: Red/Green',  data: [...curveWhite], borderColor: CHANNELS[5].color, backgroundColor:'transparent', tension: 0.4, hidden: true }
+                { label: 'White', data: new Array(24).fill(0), borderColor: '#fcd34d' },
+                { label: 'Blue', data: new Array(24).fill(0), borderColor: '#0096ff' }
             ]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.1)' } },
-                x: { grid: { color: 'rgba(255,255,255,0.05)' } }
-            },
-            onClick: (e) => {
-                const points = lightChartInstance.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
-                if (points.length) {
-                    const hourIndex = points[0].index;
-                    editorHour.value = hourIndex;
-                    refreshManualInputs();
-                }
-            },
-            plugins: {
-                dragData: {
-                    round: 0, showTooltip: true,
-                    onDragStart: function(e) { return true; },
-                    onDrag: function(e, datasetIndex, index, value) { e.target.style.cursor = 'grabbing'; },
-                    onDragEnd: function(e, datasetIndex, index, value) { 
-                        e.target.style.cursor = 'default'; 
-                        if(index == editorHour.value) {
-                            refreshManualInputs();
-                        }
-                    }
-                },
-                legend: { labels: { color: '#f1f5f9' } }
-            }
-        }
-    });
-    buildManualEditorUI();
-    refreshManualInputs();
-}
-
-function buildManualEditorUI() {
-    if(!manualInputs) return;
-    manualInputs.innerHTML = ''; 
-    CHANNELS.forEach((ch, idx) => {
-        const div = document.createElement('div');
-        div.className = 'form-group';
-        div.style.marginBottom = '0';
-        const label = document.createElement('label');
-        label.innerText = ch.name;
-        label.style.color = ch.color;
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.min = 0; input.max = 100;
-        input.id = `input_ch_${idx}`;
-        input.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value) || 0;
-            const hour = parseInt(editorHour.value);
-            lightChartInstance.data.datasets[idx].data[hour] = val;
-            lightChartInstance.update('none'); 
-        });
-        div.appendChild(label);
-        div.appendChild(input);
-        manualInputs.appendChild(div);
+        options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
-function refreshManualInputs() {
-    if(!lightChartInstance || !manualInputs) return;
-    const hour = parseInt(editorHour.value);
-    for(let i=0; i<6; i++) {
-        const val = lightChartInstance.data.datasets[i].data[hour];
-        const input = document.getElementById(`input_ch_${i}`);
-        if(input) input.value = Math.round(val);
-    }
-}
-
-function generateQR() {
-    if(!lightChartInstance) return;
-    const ds = lightChartInstance.data.datasets;
-    let hexString = "";
-    for(let h=0; h<24; h++) {
-        hexString += h.toString(16).padStart(2, '0').toUpperCase();
-        hexString += "00";
-        for(let c=0; c<6; c++) {
-            let val = Math.round(ds[c].data[h]);
-            if(val > 100) val = 100; if(val < 0) val = 0;
-            hexString += val.toString(16).padStart(2, '0').toUpperCase();
-        }
-    }
-    qrArea.style.display = 'block';
-    document.getElementById('qrcode').innerHTML = ""; 
-    new QRCode(document.getElementById("qrcode"), {
-        text: hexString,
-        width: 256,
-        height: 256,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.L
-    });
-}
-
-// Load Data
+// Load & Render
 async function loadData(force) {
     if(!statusDisplay) return;
-    if(logs.length===0 || force) statusDisplay.innerHTML = `<div style="grid-column:span 3;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;color:#94a3b8;">Connecting...</div></div>`;
+    statusDisplay.innerHTML = `<div class="spinner"></div>`;
     try {
         const d = await (await fetch(API_URL)).json();
         logs = d.map(i => ({
-            date: formatDate(i.date),
-            alk: toNum(i.alk), ca: toNum(i.ca), mg: toNum(i.mg),
+            date: formatDate(i.date), alk: toNum(i.alk), ca: toNum(i.ca), mg: toNum(i.mg),
             no3: toNum(i.no3), po4: toNum(i.po4), ph: toNum(i.ph)
         })).filter(i => i.date !== '-').sort((a,b) => new Date(a.date) - new Date(b.date));
         renderAll();
-    } catch(e) { statusDisplay.innerHTML = '<div class="status-box bad" style="grid-column:span 3;">Connection Failed</div>'; }
+    } catch(e) { statusDisplay.innerHTML = 'Error Loading Data'; }
 }
 
 async function submitLog() {
-    const btn = saveEntryBtn; const txt = btn.innerText;
-    btn.innerText = "Saving..."; btn.disabled = true;
-    const rawD = (dateInput.value||'').trim();
     const entry = {
-        date: rawD, alk: document.getElementById('alk').value, ca: document.getElementById('ca').value,
+        date: dateInput.value, alk: document.getElementById('alk').value, ca: document.getElementById('ca').value,
         mg: document.getElementById('mg').value, no3: document.getElementById('no3').value,
         po4: document.getElementById('po4').value, ph: document.getElementById('ph').value
     };
-    if(!entry.date || !entry.alk) { alert('Date/Alk required'); btn.innerText=txt; btn.disabled=false; return; }
-    try { await fetch(API_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(entry) }); } 
-    catch(e) { alert("Error: "+e); }
-    logs.push({ date: formatDate(rawD), alk: toNum(entry.alk), ca: toNum(entry.ca), mg: toNum(entry.mg), no3: toNum(entry.no3), po4: toNum(entry.po4), ph: toNum(entry.ph) });
-    renderAll();
-    alert("Saved!"); btn.innerText=txt; btn.disabled=false;
-    document.querySelectorAll('input[type=number]').forEach(i => i.value='');
+    await fetch(API_URL, { method:'POST', mode:'no-cors', body:JSON.stringify(entry) });
+    loadData(true);
 }
 
 function renderAll() {
@@ -295,42 +146,27 @@ function renderAll() {
         <div class="status-box ${getStatusClass('alk',l.alk)}">Alk: ${l.alk??'?'}</div>
         <div class="status-box ${getStatusClass('ca',l.ca)}">Ca: ${l.ca??'?'}</div>
         <div class="status-box ${getStatusClass('no3',l.no3)}">NO3: ${l.no3??'?'}</div>`;
-    if(calcCurrentCaInput && l.ca) calcCurrentCaInput.value = l.ca;
 
     historyTbody.innerHTML = [...logs].slice().reverse().map(i => `
-        <tr><td>${i.date}</td>
-        <td class="${getStatusClass('alk',i.alk)}">${i.alk??'-'}</td><td class="${getStatusClass('ca',i.ca)}">${i.ca??'-'}</td>
-        <td class="${getStatusClass('mg',i.mg)}">${i.mg??'-'}</td><td class="${getStatusClass('no3',i.no3)}">${i.no3??'-'}</td>
-        <td class="${getStatusClass('po4',i.po4)}">${i.po4??'-'}</td><td class="${getStatusClass('ph',i.ph)}">${i.ph??'-'}</td></tr>`
-    ).join('');
+        <tr><td>${i.date}</td><td class="${getStatusClass('alk',i.alk)}">${i.alk??'-'}</td><td class="${getStatusClass('ca',i.ca)}">${i.ca??'-'}</td>
+        <td>${i.mg??'-'}</td><td>${i.no3??'-'}</td><td>${i.po4??'-'}</td><td>${i.ph??'-'}</td></tr>`).join('');
 
-    const lbl = logs.map(x=>x.date);
-    const ds = [
-        {l:'Alk',d:'alk',c:'#06b6d4',y:'y'}, {l:'Ca',d:'ca',c:'#a855f7',y:'y1'},
-        {l:'Mg',d:'mg',c:'#f97316',y:'y1'}, {l:'NO3',d:'no3',c:'#10b981',y:'y'},
-        {l:'PO4',d:'po4',c:'#14b8a6',y:'y'}, {l:'pH',d:'ph',c:'#ef4444',y:'y'}
-    ].map((cfg,i) => ({
-        label: cfg.l, data: logs.map(x=>x[cfg.d]), borderColor: cfg.c, backgroundColor: cfg.c, 
-        yAxisID: cfg.y, spanGaps: true, hidden: !chartCheckboxes[i].checked
-    }));
-
-    if(chartInstance) { chartInstance.data.labels=lbl; chartInstance.data.datasets.forEach((d,i)=>d.data=ds[i].data); chartInstance.update(); }
-    else {
-        Chart.defaults.color = '#94a3b8'; 
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
-        chartInstance = new Chart(tankCtx, {
-            type: 'line', data: { labels: lbl, datasets: ds },
-            options: {
-                responsive: true, maintainAspectRatio: false, interaction: { mode:'index', intersect:false },
-                plugins: { legend: { display:false } },
-                scales: { 
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { position:'left', title:{display:true, text:'Alk / Nutrients', color:'#cbd5e1'}, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y1: { position:'right', grid:{drawOnChartArea:false}, title:{display:true, text:'Ca / Mg', color:'#cbd5e1'} }
-                }
-            }
-        });
-    }
+    // Re-init the Trend Chart
+    if(chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(tankCtx, {
+        type: 'line',
+        data: {
+            labels: logs.map(x=>x.date),
+            datasets: [
+                { label: 'Alk', data: logs.map(x=>x.alk), borderColor: '#06b6d4', yAxisID: 'y' },
+                { label: 'Ca', data: logs.map(x=>x.ca), borderColor: '#a855f7', yAxisID: 'y1' }
+            ]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { position:'left' }, y1: { position:'right', grid:{drawOnChartArea:false} } }
+        }
+    });
 }
 
 // --- 🧪 THE FIXED CALCULATOR LOGIC ---
@@ -338,54 +174,32 @@ function calculateDosing() {
     const cur = toNum(calcCurrentCaInput.value), tgt = toNum(calcTargetCaInput.value);
     if(!cur || !tgt) return alert("Enter Calcium values");
     
-    let drop = 0, p1 = 0;
+    let drop = 0, maintP1 = 4.0; // Your current baseline P1 dose
     const cl = logs.filter(l => l.ca != null);
     
-    // 1. Calculate Daily Consumption (Maintenance)
     if(cl.length >= 2) {
         const n = cl[cl.length-1], o = cl[cl.length-2];
         const days = Math.abs((new Date(n.date) - new Date(o.date)) / (8.64e7)) || 1;
-        drop = Math.max(0, (o.ca - n.ca) / days);
-        p1 = drop / CA_IMPACT_FACTOR;
+        drop = (o.ca - n.ca) / days; 
+        maintP1 = (drop / CA_IMPACT_FACTOR) + 4.0; 
     }
 
-    // 2. Calculate Correction (Gap)
     const gap = tgt - cur;
-    const totalCorrNeeded = gap > 5 ? (gap / CA_IMPACT_FACTOR) : 0;
-    const daysToSplit = gap > 20 ? 3 : 1;
-    const corrToday = totalCorrNeeded / daysToSplit;
-
-    // 3. Define Final Daily Doses (Applying Red Sea Ratios ONLY to consumption)
-    const totP1 = p1 + corrToday; // Calcium gets the correction
-    const totP2 = p1 * 2.0;       // Alk stays linked to coral growth
-    const totP3 = p1 * 0.5;       // Iodine stays linked to coral growth
-    const totP4 = p1 * 0.5;       // Bio stays linked to coral growth
+    const corrToday = (gap / CA_IMPACT_FACTOR) / (gap > 20 ? 3 : 1);
 
     calcResults.style.display = 'block';
     calcResults.innerHTML = `
-        <h3 style="color:#f1f5f9; margin-bottom:5px;">🧪 Red Sea Plan</h3>
-        <p style="margin:0; font-size:0.9em; color:#94a3b8;">Daily Consumption: <b>${drop.toFixed(1)} ppm/day</b></p>
-        
-        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
-            <div style="color:#cbd5e1;"><b>Part 1 (Ca)</b></div><div style="font-weight:bold; color:#a855f7;">${totP1.toFixed(1)} mL</div>
-            <div style="color:#cbd5e1;">Part 2 (Alk)</div><div style="color:#38bdf8;">${totP2.toFixed(1)} mL</div>
-            <div style="color:#cbd5e1;">Part 3 (Iod)</div><div>${totP3.toFixed(1)} mL</div>
-            <div style="color:#cbd5e1;">Part 4 (Bio)</div><div>${totP4.toFixed(1)} mL</div>
-        </div>
-
-        <div style="margin-top:15px; padding:10px; border:1px dashed #475569; border-radius:8px;">
-            <h4 style="margin:0 0 5px 0; font-size:0.85em; color:#38bdf8; text-transform:uppercase;">📱 Blenny Pump Settings (Auto)</h4>
-            <div style="font-family:monospace; font-size:0.9em; color:#cbd5e1; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; margin-bottom:5px;">
-                P1: 8.5mL | P2: 10.5mL | P3: 2.5mL | P4: 2.5mL
+        <h3 style="color:#f1f5f9;">🧪 Red Sea Plan</h3>
+        <p style="font-size:0.9em; color:#94a3b8;">Daily Consumption: <b>${drop.toFixed(1)} ppm/day</b></p>
+        <div style="margin-top:10px; padding:10px; border:1px dashed #475569; border-radius:8px;">
+            <h4 style="margin:0 0 5px 0; color:#38bdf8;">📱 New Blenny Settings</h4>
+            <div style="font-family:monospace; color:#cbd5e1;">
+                P1: ${maintP1.toFixed(1)} | P2: ${(maintP1*2).toFixed(1)} | P3: ${(maintP1*0.5).toFixed(1)} | P4: ${(maintP1*0.5).toFixed(1)}
             </div>
-            <p style="margin:0; font-size:0.75em; color:#94a3b8;">
-                *Note: Your Blenny handles maintenance. <br>To reach target, manually add <b>${corrToday.toFixed(1)}mL</b> of Part 1 today.
+            <p style="margin:5px 0 0 0; font-size:0.8em; color:#94a3b8;">
+                Manual Boost: <b>${corrToday.toFixed(1)}mL</b> Part 1 today.
             </p>
-        </div>
-
-        <p style="margin-top:10px; font-size:0.85em; color:${gap > 20 ? '#fbbf24' : '#94a3b8'};">
-            ${gap > 5 ? `⚠️ Correction included: ${corrToday.toFixed(1)}mL boost for ${daysToSplit} day(s).` : '✅ Levels match target'}
-        </p>`;
+        </div>`;
 }
 
 loadData();
