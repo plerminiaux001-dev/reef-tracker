@@ -376,7 +376,7 @@ function calculateDosing() {
         <div style="margin-top:15px; padding:10px; border:1px dashed #475569; border-radius:8px;">
             <h4 style="margin:0 0 5px 0; font-size:0.85em; color:#38bdf8; text-transform:uppercase;">📱 Blenny Pump Settings (Auto)</h4>
             <div style="font-family:monospace; font-size:0.9em; color:#cbd5e1; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; margin-bottom:5px;">
-                P1: 4.0mL | P2: 8.0mL | P3: 2.0mL | P4: 2.0mL
+                P1: 9.5mL | P2: 10.5mL | P3: 2.5mL | P4: 2.5mL
             </div>
             <p style="margin:0; font-size:0.75em; color:#94a3b8;">
                 *Note: Your Blenny handles maintenance. <br>To reach target, manually add <b>${corrToday.toFixed(1)}mL</b> of Part 1 today.
