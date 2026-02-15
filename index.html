@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>389 Reef Command Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -14,7 +14,9 @@
 
     <div class="tab-nav">
         <button class="tab-btn active" data-target="dashboard">Dashboard</button>
+        <button class="tab-btn" data-target="lighting">Lighting Editor</button>
         <button class="tab-btn" data-target="instructions">Dosing Guide</button>
+        <button class="tab-btn" data-target="mixing">Salt Mixer</button>
     </div>
 
     <div id="dashboard" class="tab-content active">
@@ -36,9 +38,9 @@
                 <button id="saveEntryBtn">Save Entry</button>
             </div>
 
-            <div class="card">
+            <div class="card highlight">
                 <h2>🧪 Dosing Assistant</h2>
-                <div style="background: rgba(6, 182, 212, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(6, 182, 212, 0.2);">
+                <div style="background: rgba(6, 182, 212, 0.1); padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(6, 182, 212, 0.2);">
                     <label style="color: var(--primary); font-size: 0.75em;">Current Blenny Settings (mL/day)</label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
                         <input type="number" id="currentP1" placeholder="P1 (Ca)" step="0.1">
@@ -54,9 +56,9 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top: 25px;">
-            <h2>📈 Trends</h2>
-            <div class="chart-controls" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+        <div class="card">
+            <h2 style="margin-bottom: 15px;">📈 Trends</h2>
+            <div class="chart-controls">
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="0" checked> Alk</label>
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="1" checked> Ca</label>
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="2" checked> Mg</label>
@@ -64,7 +66,7 @@
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="4" checked> PO4</label>
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="5" checked> pH</label>
             </div>
-            <div style="height: 400px; width: 100%;">
+            <div class="chart-container">
                 <canvas id="tankChart"></canvas>
             </div>
         </div>
@@ -76,6 +78,23 @@
                 <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
                 <tbody></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="lighting" class="tab-content">
+        <div class="card highlight"><h2>💡 Light Profile Generator</h2><p>Restored content.</p></div>
+    </div>
+    <div id="mixing" class="tab-content">
+        <div class="card highlight">
+            <h2>🌊 Saltwater Mixing Station</h2>
+            <div class="grid">
+                <div class="form-group"><label>Water Vol (Gal)</label><input type="number" id="mixVol" value="5"></div>
+                <div class="form-group"><label>Target SG</label><input type="number" id="mixTarget" value="1.026" step="0.001"></div>
+            </div>
+            <button id="btnMix">Calculate Mix</button>
+            <div id="mixResult" style="display:none; margin-top:20px;">
+                <h3>🧂 Add to Water: <span id="resGrams">0</span>g (<span id="resCups">0</span> cups)</h3>
+            </div>
         </div>
     </div>
 
