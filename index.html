@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -15,7 +17,7 @@
     <div class="tab-nav">
         <button class="tab-btn active" data-target="dashboard">Dashboard</button>
         <button class="tab-btn" data-target="lighting">Lighting Editor</button>
-        <button class="tab-btn" data-target="instructions">Dosing Guide</button>
+        <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
     </div>
 
@@ -61,14 +63,12 @@
             <div class="chart-controls">
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="0" checked> Alk</label>
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="1" checked> Ca</label>
-                <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="2" checked> Mg</label>
+                <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="2"> Mg</label>
                 <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="3" checked> NO3</label>
-                <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="4" checked> PO4</label>
-                <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="5" checked> pH</label>
+                <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="4"> PO4</label>
+                <label class="chart-check-label"><input type="checkbox" class="param-check" data-idx="5"> pH</label>
             </div>
-            <div class="chart-container">
-                <canvas id="tankChart"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="tankChart"></canvas></div>
         </div>
 
         <div class="card" style="margin-top: 25px;">
@@ -82,8 +82,42 @@
     </div>
 
     <div id="lighting" class="tab-content">
-        <div class="card highlight"><h2>💡 Light Profile Generator</h2><p>Restored content.</p></div>
+        <div class="card highlight">
+            <h2>💡 Light Profile Generator</h2>
+            <div class="chart-container" style="height: 350px; cursor: crosshair;"><canvas id="lightChart"></canvas></div>
+            <div class="card" style="background: rgba(0,0,0,0.2); margin-top: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3>🛠️ Manual Editor</h3>
+                    <select id="editorHour" style="width:auto; padding:5px 15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:6px;"></select>
+                </div>
+                <div class="grid-small" id="manualInputs"></div>
+            </div>
+            <div class="grid-small" style="margin-top: 25px; display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button id="btnResetLights" style="background:#475569;">Reset to Flat</button>
+                <button id="btnExportLights">Generate QR Code</button>
+            </div>
+            <div id="qrArea" style="display:none; text-align:center; margin-top:20px; padding:20px; background:white; border-radius:12px;">
+                <div id="qrcode" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
+                <div style="color:#0f172a; font-weight:bold;">Scan with Noopsyche App</div>
+            </div>
+        </div>
     </div>
+
+    <div id="instructions" class="tab-content">
+        <div class="card highlight">
+            <h2>🤖 Hydros Blenny Configuration</h2>
+            <table class="info-table">
+                <thead><tr><th>Pump</th><th>Element</th><th>Red Sea Ratio</th></tr></thead>
+                <tbody>
+                    <tr><td><b>Doser 1</b></td><td>Part 1 (Ca)</td><td>1.0</td></tr>
+                    <tr><td><b>Doser 2</b></td><td>Part 2 (Alk)</td><td>2.0</td></tr>
+                    <tr><td><b>Doser 3</b></td><td>Part 3 (Iodine)</td><td>0.5</td></tr>
+                    <tr><td><b>Doser 4</b></td><td>Part 4 (Bioactive)</td><td>0.5</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div id="mixing" class="tab-content">
         <div class="card highlight">
             <h2>🌊 Saltwater Mixing Station</h2>
@@ -93,7 +127,7 @@
             </div>
             <button id="btnMix">Calculate Mix</button>
             <div id="mixResult" style="display:none; margin-top:20px;">
-                <h3>🧂 Add to Water: <span id="resGrams">0</span>g (<span id="resCups">0</span> cups)</h3>
+                <h3>🧂 Add <span id="resGrams">0</span>g (<span id="resCups">0</span> cups)</h3>
             </div>
         </div>
     </div>
