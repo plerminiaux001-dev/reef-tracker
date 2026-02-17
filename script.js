@@ -173,31 +173,54 @@ function renderAll() {
 function calculateDosing() {
     const cur = toNum(calcCurrentCaInput.value), tgt = toNum(calcTargetCaInput.value);
     if(!cur || !tgt) return alert("Enter Calcium values");
+
+    // Pulling your actual current pump settings from the new HTML inputs
+    const p1Curr = toNum(document.getElementById('currP1').value) || 0;
+    const p2Curr = toNum(document.getElementById('currP2').value) || 0;
+    const p3Curr = toNum(document.getElementById('currP3').value) || 0;
+    const p4Curr = toNum(document.getElementById('currP4').value) || 0;
     
-    let drop = 0, maintP1 = 4.0; // Your current baseline P1 dose
+    let drop = 0;
+    let adjustmentML = 0;
     const cl = logs.filter(l => l.ca != null);
     
     if(cl.length >= 2) {
         const n = cl[cl.length-1], o = cl[cl.length-2];
-        const days = Math.abs((new Date(n.date) - new Date(o.date)) / (8.64e7)) || 1;
-        drop = (o.ca - n.ca) / days; 
-        maintP1 = (drop / CA_IMPACT_FACTOR) + 4.0; 
+        const days = Math.max(1, Math.abs((new Date(n.date) - new Date(o.date)) / (8.64e7)));
+        
+        // Daily ppm drop based on your 24-gallon volume math
+        drop = Math.max(0, (o.ca - n.ca) / days); 
+        adjustmentML = (drop / CA_IMPACT_FACTOR);
     }
+
+    // Calculate New Settings based on the Calcium consumption delta
+    const newP1 = p1Curr + adjustmentML;
+    
+    // Calculate ratio based on Calcium (P1) change to keep Trace (P3/P4) in sync
+    const ratio = p1Curr > 0 ? (newP1 / p1Curr) : 1; 
+
+    // If P1 was 0, we fallback to a flat adjustment; otherwise, we scale proportionally
+    const newP2 = p1Curr > 0 ? (p2Curr * ratio) : (p2Curr + adjustmentML);
+    const newP3 = p1Curr > 0 ? (p3Curr * ratio) : (p3Curr + adjustmentML);
+    const newP4 = p1Curr > 0 ? (p4Curr * ratio) : (p4Curr + adjustmentML);
 
     const gap = tgt - cur;
     const corrToday = (gap / CA_IMPACT_FACTOR) / (gap > 20 ? 3 : 1);
 
     calcResults.style.display = 'block';
     calcResults.innerHTML = `
-        <h3 style="color:#f1f5f9;">🧪 Red Sea Plan</h3>
+        <h3 style="color:#f1f5f9;">🧪 Red Sea Dosing Update</h3>
         <p style="font-size:0.9em; color:#94a3b8;">Daily Consumption: <b>${drop.toFixed(1)} ppm/day</b></p>
         <div style="margin-top:10px; padding:10px; border:1px dashed #475569; border-radius:8px;">
             <h4 style="margin:0 0 5px 0; color:#38bdf8;">📱 New Blenny Settings</h4>
-            <div style="font-family:monospace; color:#cbd5e1;">
-                P1: ${maintP1.toFixed(1)} | P2: ${(maintP1*2).toFixed(1)} | P3: ${(maintP1*0.5).toFixed(1)} | P4: ${(maintP1*0.5).toFixed(1)}
+            <div style="font-family:monospace; color:#cbd5e1; font-size:1.1em; display:grid; grid-template-columns: 1fr 1fr; row-gap:5px;">
+                <div>P1 (Ca): <b>${newP1.toFixed(1)}</b></div>
+                <div>P2 (Alk): <b>${newP2.toFixed(1)}</b></div>
+                <div>P3 (Tr): <b>${newP3.toFixed(1)}</b></div>
+                <div>P4 (Tr): <b>${newP4.toFixed(1)}</b></div>
             </div>
-            <p style="margin:5px 0 0 0; font-size:0.8em; color:#94a3b8;">
-                Manual Boost: <b>${corrToday.toFixed(1)}mL</b> Part 1 today.
+            <p style="margin:10px 0 0 0; font-size:0.8em; color:#94a3b8;">
+                Manual Boost: <b>${corrToday.toFixed(1)}mL</b> Part 1 (Ca) today.
             </p>
         </div>`;
 }
