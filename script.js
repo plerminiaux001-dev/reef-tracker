@@ -190,10 +190,16 @@ function renderAll() {
         options: { 
             responsive: true, 
             maintainAspectRatio: false,
+            // 👇 ADD THIS PLUGINS BLOCK 👇
+            plugins: {
+                legend: {
+                    display: false 
+                }
+            },
+            // 👆 ======================= 👆
             scales: { 
                 yAlk: { position:'left' }, 
                 yCa:  { position:'right', grid:{drawOnChartArea:false} },
-                // Hidden axes allow Chart.js to scale data properly without cluttering the UI
                 yMg:  { position:'right', display:false }, 
                 yNo3: { position:'left', display:false },
                 yPo4: { position:'right', display:false },
