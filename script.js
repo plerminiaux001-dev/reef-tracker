@@ -198,12 +198,12 @@ function renderAll() {
             },
             // 👆 ======================= 👆
             scales: { 
-                yAlk: { position:'left' }, 
-                yCa:  { position:'right', grid:{drawOnChartArea:false} },
-                yMg:  { position:'right', display:false }, 
-                yNo3: { position:'left', display:false },
-                yPo4: { position:'right', display:false },
-                yPh:  { position:'left', display:false }
+                yAlk: { position: 'left',  display: 'auto' }, 
+                yCa:  { position: 'right', display: 'auto', grid: { drawOnChartArea: false } },
+                yMg:  { position: 'right', display: 'auto', grid: { drawOnChartArea: false } }, 
+                yNo3: { position: 'left',  display: 'auto', grid: { drawOnChartArea: false } },
+                yPo4: { position: 'right', display: 'auto', grid: { drawOnChartArea: false } },
+                yPh:  { position: 'left',  display: 'auto', grid: { drawOnChartArea: false } }
             }
         }
     });
