@@ -86,6 +86,17 @@ if(saveEntryBtn) saveEntryBtn.addEventListener('click', submitLog);
 if(refreshBtn) refreshBtn.addEventListener('click', () => loadData(true));
 if(calcBtn) calcBtn.addEventListener('click', calculateDosing);
 
+// --- ADD THIS LISTENER ---
+chartCheckboxes.forEach(cb => {
+    cb.addEventListener('change', (e) => {
+        if(!chartInstance) return;
+        const idx = parseInt(e.target.dataset.idx);
+        // Toggle visibility in Chart.js using the checkbox's index
+        chartInstance.setDatasetVisibility(idx, e.target.checked);
+        chartInstance.update();
+    });
+});
+
 // Salt Mix
 if(btnMix) {
     btnMix.addEventListener('click', () => {
@@ -153,18 +164,47 @@ function renderAll() {
 
     // Re-init the Trend Chart
     if(chartInstance) chartInstance.destroy();
+    
+    // 1. Build all 6 datasets (matching the HTML data-idx order 0-5)
+    const allDatasets = [
+        { label: 'Alk', data: logs.map(x=>x.alk), borderColor: '#06b6d4', yAxisID: 'yAlk' },
+        { label: 'Ca',  data: logs.map(x=>x.ca),  borderColor: '#a855f7', yAxisID: 'yCa' },
+        { label: 'Mg',  data: logs.map(x=>x.mg),  borderColor: '#f97316', yAxisID: 'yMg' },
+        { label: 'NO3', data: logs.map(x=>x.no3), borderColor: '#22c55e', yAxisID: 'yNo3' },
+        { label: 'PO4', data: logs.map(x=>x.po4), borderColor: '#78716c', yAxisID: 'yPo4' },
+        { label: 'pH',  data: logs.map(x=>x.ph),  borderColor: '#ef4444', yAxisID: 'yPh' }
+    ];
+
+    // 2. Read the checkboxes to see what should be hidden on initial load
+    chartCheckboxes.forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
+        allDatasets[idx].hidden = !cb.checked;
+    });
+
     chartInstance = new Chart(tankCtx, {
         type: 'line',
         data: {
             labels: logs.map(x=>x.date),
-            datasets: [
-                { label: 'Alk', data: logs.map(x=>x.alk), borderColor: '#06b6d4', yAxisID: 'y' },
-                { label: 'Ca', data: logs.map(x=>x.ca), borderColor: '#a855f7', yAxisID: 'y1' }
-            ]
+            datasets: allDatasets
         },
         options: { 
-            responsive: true, maintainAspectRatio: false,
-            scales: { y: { position:'left' }, y1: { position:'right', grid:{drawOnChartArea:false} } }
+            responsive: true, 
+            maintainAspectRatio: false,
+            // 👇 ADD THIS PLUGINS BLOCK 👇
+            plugins: {
+                legend: {
+                    display: false 
+                }
+            },
+            // 👆 ======================= 👆
+            scales: { 
+                yAlk: { position: 'left',  display: 'auto' }, 
+                yCa:  { position: 'right', display: 'auto', grid: { drawOnChartArea: false } },
+                yMg:  { position: 'right', display: 'auto', grid: { drawOnChartArea: false } }, 
+                yNo3: { position: 'left',  display: 'auto', grid: { drawOnChartArea: false } },
+                yPo4: { position: 'right', display: 'auto', grid: { drawOnChartArea: false } },
+                yPh:  { position: 'left',  display: 'auto', grid: { drawOnChartArea: false } }
+            }
         }
     });
 }
@@ -173,31 +213,55 @@ function renderAll() {
 function calculateDosing() {
     const cur = toNum(calcCurrentCaInput.value), tgt = toNum(calcTargetCaInput.value);
     if(!cur || !tgt) return alert("Enter Calcium values");
+
+    const p1Curr = toNum(document.getElementById('currP1').value) || 0;
+    const p2Curr = toNum(document.getElementById('currP2').value) || 0;
+    const p3Curr = toNum(document.getElementById('currP3').value) || 0;
+    const p4Curr = toNum(document.getElementById('currP4').value) || 0;
     
-    let drop = 0, maintP1 = 4.0; // Your current baseline P1 dose
-    const cl = logs.filter(l => l.ca != null);
+    let trueConsumptionPpm = 0;
+    const cl = logs.filter(l => l.ca != null).sort((a,b) => new Date(a.date) - new Date(b.date));
     
     if(cl.length >= 2) {
         const n = cl[cl.length-1], o = cl[cl.length-2];
-        const days = Math.abs((new Date(n.date) - new Date(o.date)) / (8.64e7)) || 1;
-        drop = (o.ca - n.ca) / days; 
-        maintP1 = (drop / CA_IMPACT_FACTOR) + 4.0; 
+        const days = Math.max(1, Math.abs((new Date(n.date) - new Date(o.date)) / 8.64e7));
+        
+        // 1. Calculate the raw change in ppm
+        const rawPpmChange = (o.ca - n.ca); // e.g., 394 - 413 = -19
+        
+        // 2. Add back what the doser supplied (1.4ppm per ml per 100L)
+        const ppmDosedPerDay = p1Curr * CA_IMPACT_FACTOR;
+        const totalPpmAddedByDoser = ppmDosedPerDay * days;
+        
+        // 3. True Consumption = (What went missing + what we added) / days
+        trueConsumptionPpm = (rawPpmChange + totalPpmAddedByDoser) / days;
     }
 
+    // New Daily Dose to maintain stability
+    const newP1 = Math.max(0, trueConsumptionPpm / CA_IMPACT_FACTOR);
+    
+    // Scale Trace parts proportionally (Red Sea Ratios: 1 : 2 : 0.5 : 0.5)
+    const newP2 = newP1 * 2.0;
+    const newP3 = newP1 * 0.5;
+    const newP4 = newP1 * 0.5;
+
     const gap = tgt - cur;
-    const corrToday = (gap / CA_IMPACT_FACTOR) / (gap > 20 ? 3 : 1);
+    const corrToday = (gap / CA_IMPACT_FACTOR);
 
     calcResults.style.display = 'block';
     calcResults.innerHTML = `
-        <h3 style="color:#f1f5f9;">🧪 Red Sea Plan</h3>
-        <p style="font-size:0.9em; color:#94a3b8;">Daily Consumption: <b>${drop.toFixed(1)} ppm/day</b></p>
+        <h3 style="color:#f1f5f9;">🧪 True Consumption Update</h3>
+        <p style="font-size:0.9em; color:#94a3b8;">True Daily Uptake: <b>${trueConsumptionPpm.toFixed(1)} ppm/day</b></p>
         <div style="margin-top:10px; padding:10px; border:1px dashed #475569; border-radius:8px;">
-            <h4 style="margin:0 0 5px 0; color:#38bdf8;">📱 New Blenny Settings</h4>
-            <div style="font-family:monospace; color:#cbd5e1;">
-                P1: ${maintP1.toFixed(1)} | P2: ${(maintP1*2).toFixed(1)} | P3: ${(maintP1*0.5).toFixed(1)} | P4: ${(maintP1*0.5).toFixed(1)}
+            <h4 style="margin:0 0 5px 0; color:#38bdf8;">📱 Suggested Blenny Settings</h4>
+            <div style="font-family:monospace; color:#cbd5e1; font-size:1.1em; display:grid; grid-template-columns: 1fr 1fr;">
+                <div>P1 (Ca): <b>${newP1.toFixed(1)}</b></div>
+                <div>P2 (Alk): <b>${newP2.toFixed(1)}</b></div>
+                <div>P3 (Tr): <b>${newP3.toFixed(1)}</b></div>
+                <div>P4 (Tr): <b>${newP4.toFixed(1)}</b></div>
             </div>
-            <p style="margin:5px 0 0 0; font-size:0.8em; color:#94a3b8;">
-                Manual Boost: <b>${corrToday.toFixed(1)}mL</b> Part 1 today.
+            <p style="margin:10px 0 0 0; font-size:0.8em; color:#94a3b8;">
+                One-time Adjustment: <b>${corrToday.toFixed(1)}mL</b> Part 1.
             </p>
         </div>`;
 }

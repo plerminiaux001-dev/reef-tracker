@@ -21,7 +21,7 @@
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
     </div>
 
-    <div id="dashboard" class="tab-content active">
+<div id="dashboard" class="tab-content active">
         <div class="card" style="margin-bottom: 25px;">
             <h2>Current Status</h2>
             <div class="status-grid" id="statusDisplay">
@@ -48,12 +48,32 @@
             <div class="card">
                 <h2>🧪 Dosing Assistant</h2>
                 <p style="opacity: 0.7;">Red Sea Recipe Calculator</p>
+                
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
                     <div class="form-group"><label>Current Ca</label><input type="number" id="calcCurrentCa" placeholder="..."></div>
                     <div class="form-group"><label>Target Ca</label><input type="number" id="calcTargetCa" value="430"></div>
                 </div>
+
+                <div id="current-settings-group" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
+                    <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 0.9em;">Current Blenny Doses (mL)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P1 (Ca)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P2 (Alk)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P3 (Tr)</label><input type="number" id="currP3" placeholder="0.0" step="0.1"></div>
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P4 (Tr)</label><input type="number" id="currP4" placeholder="0.0" step="0.1"></div>
+                    </div>
+                </div>
+
                 <button id="calcBtn">Calculate Recipe</button>
                 <div id="calc-results" style="display:none;"></div>
+            </div>
+        </div> <div class="card" style="margin-bottom: 25px;">
+            <h2>History</h2>
+            <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
+            <div style="overflow-x: auto;"> <table id="historyTable">
+                    <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
 
@@ -70,15 +90,6 @@
             <div class="chart-container">
                 <canvas id="tankChart"></canvas>
             </div>
-        </div>
-
-        <div class="card" style="margin-top: 25px;">
-            <h2>History</h2>
-            <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
-            <table id="historyTable">
-                <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
-                <tbody></tbody>
-            </table>
         </div>
     </div>
 
