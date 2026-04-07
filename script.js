@@ -190,7 +190,6 @@ function calculateDosing() {
         const rawPpmChange = (o.ca - n.ca); // e.g., 394 - 413 = -19
         
         // 2. Add back what the doser supplied (1.4ppm per ml per 100L)
-        // For 24 gal (91L), CA_IMPACT_FACTOR is approx 1.54
         const ppmDosedPerDay = p1Curr * CA_IMPACT_FACTOR;
         const totalPpmAddedByDoser = ppmDosedPerDay * days;
         
