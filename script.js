@@ -86,6 +86,17 @@ if(saveEntryBtn) saveEntryBtn.addEventListener('click', submitLog);
 if(refreshBtn) refreshBtn.addEventListener('click', () => loadData(true));
 if(calcBtn) calcBtn.addEventListener('click', calculateDosing);
 
+// --- ADD THIS LISTENER ---
+chartCheckboxes.forEach(cb => {
+    cb.addEventListener('change', (e) => {
+        if(!chartInstance) return;
+        const idx = parseInt(e.target.dataset.idx);
+        // Toggle visibility in Chart.js using the checkbox's index
+        chartInstance.setDatasetVisibility(idx, e.target.checked);
+        chartInstance.update();
+    });
+});
+
 // Salt Mix
 if(btnMix) {
     btnMix.addEventListener('click', () => {
@@ -153,18 +164,41 @@ function renderAll() {
 
     // Re-init the Trend Chart
     if(chartInstance) chartInstance.destroy();
+    
+    // 1. Build all 6 datasets (matching the HTML data-idx order 0-5)
+    const allDatasets = [
+        { label: 'Alk', data: logs.map(x=>x.alk), borderColor: '#06b6d4', yAxisID: 'yAlk' },
+        { label: 'Ca',  data: logs.map(x=>x.ca),  borderColor: '#a855f7', yAxisID: 'yCa' },
+        { label: 'Mg',  data: logs.map(x=>x.mg),  borderColor: '#f97316', yAxisID: 'yMg' },
+        { label: 'NO3', data: logs.map(x=>x.no3), borderColor: '#22c55e', yAxisID: 'yNo3' },
+        { label: 'PO4', data: logs.map(x=>x.po4), borderColor: '#78716c', yAxisID: 'yPo4' },
+        { label: 'pH',  data: logs.map(x=>x.ph),  borderColor: '#ef4444', yAxisID: 'yPh' }
+    ];
+
+    // 2. Read the checkboxes to see what should be hidden on initial load
+    chartCheckboxes.forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
+        allDatasets[idx].hidden = !cb.checked;
+    });
+
     chartInstance = new Chart(tankCtx, {
         type: 'line',
         data: {
             labels: logs.map(x=>x.date),
-            datasets: [
-                { label: 'Alk', data: logs.map(x=>x.alk), borderColor: '#06b6d4', yAxisID: 'y' },
-                { label: 'Ca', data: logs.map(x=>x.ca), borderColor: '#a855f7', yAxisID: 'y1' }
-            ]
+            datasets: allDatasets
         },
         options: { 
-            responsive: true, maintainAspectRatio: false,
-            scales: { y: { position:'left' }, y1: { position:'right', grid:{drawOnChartArea:false} } }
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { 
+                yAlk: { position:'left' }, 
+                yCa:  { position:'right', grid:{drawOnChartArea:false} },
+                // Hidden axes allow Chart.js to scale data properly without cluttering the UI
+                yMg:  { position:'right', display:false }, 
+                yNo3: { position:'left', display:false },
+                yPo4: { position:'right', display:false },
+                yPh:  { position:'left', display:false }
+            }
         }
     });
 }
