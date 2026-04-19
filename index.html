@@ -5,10 +5,131 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Reef Command Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        /* --- 🎨 MODERN DARK THEME --- */
+        :root { 
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: 1px solid rgba(255, 255, 255, 0.1);
+            --primary: #06b6d4;
+            --primary-hover: #0891b2;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-glow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            background: var(--bg-gradient); 
+            color: var(--text-main); 
+            padding: 20px; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            min-height: 100vh; 
+        }
+
+        h1, h2, h3 { color: var(--text-main); margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
+        h1 { text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+        /* Layout */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 25px; }
+        .grid-small { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+
+        /* Glass Cards */
+        .card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 16px; 
+            border: var(--card-border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .card.highlight { 
+            border-top: 4px solid var(--primary); 
+            background: linear-gradient(180deg, rgba(6,182,212,0.05) 0%, rgba(30,41,59,0.7) 100%);
+        }
+
+        /* Tabs */
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; flex-wrap: wrap; }
+        .tab-btn { 
+            background: transparent; color: var(--text-muted); border: 1px solid transparent; 
+            padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95em; font-weight: 600; 
+            transition: all 0.2s; flex: 1; max-width: 200px; font-family: 'Inter', sans-serif;
+            min-width: 140px;
+        }
+        .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .tab-btn.active { 
+            background: rgba(6, 182, 212, 0.15); color: var(--primary); 
+            border: 1px solid rgba(6, 182, 212, 0.3); box-shadow: var(--accent-glow);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Forms */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        input { 
+            width: 100%; padding: 12px; background-color: #1e293b !important; 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; 
+            color: white !important; font-size: 1em; transition: 0.2s; box-sizing: border-box;
+        }
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2); }
+
+        button { 
+            background: var(--primary); color: #0f172a; border: none; padding: 12px 20px; 
+            border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 700; width: 100%; 
+            transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--accent-glow); }
+        button:disabled { background: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* Status Pills & Table Cells */
+        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .status-box { 
+            padding: 12px; border-radius: 12px; text-align: center; 
+            font-weight: 700; font-size: 1.1em; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .good { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); color: #0f172a !important; }
+        .warn { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f172a !important; }
+        .bad  { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); color: #0f172a !important; }
+
+        /* Table */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: var(--text-muted); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        td { font-variant-numeric: tabular-nums; }
+
+        .info-table { border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; }
+        .info-table th { background: rgba(0,0,0,0.2); color: var(--text-main); }
+        .info-table td { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        /* Chart & Calc Areas */
+        #calc-results, #mixResult { 
+            margin-top: 20px; padding: 20px; background: rgba(6, 182, 212, 0.1); 
+            border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 12px; color: var(--text-main);
+        }
+        .chart-controls { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .chart-check-label { background: rgba(255,255,255,0.05); color: var(--text-muted); border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.9em; }
+        .chart-check-label:hover { background: rgba(255,255,255,0.1); color: var(--text-main); }
+        .chart-container { height: 350px; position: relative; width: 100%; }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1); width: 40px; height: 40px; 
+            border-radius: 50%; border-left-color: var(--primary); 
+            animation: spin 1s linear infinite; margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
 
@@ -21,13 +142,14 @@
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
     </div>
 
-<div id="dashboard" class="tab-content active">
+    <!-- DASHBOARD TAB -->
+    <div id="dashboard" class="tab-content active">
         <div class="card" style="margin-bottom: 25px;">
             <h2>Current Status</h2>
             <div class="status-grid" id="statusDisplay">
                 <div style="grid-column: span 3; padding: 20px;">
                     <div class="spinner"></div>
-                    <div style="margin-top:10px; font-size:0.9em; opacity: 0.7;">Loading Reef Data...</div>
+                    <div style="margin-top:10px; font-size:0.9em; opacity: 0.7; text-align: center;">Loading Reef Data...</div>
                 </div>
             </div>
         </div>
@@ -47,30 +169,31 @@
 
             <div class="card">
                 <h2>🧪 Dosing Assistant</h2>
-                <p style="opacity: 0.7;">Red Sea Recipe Calculator</p>
+                <p style="opacity: 0.7; margin-bottom: 15px;">Not A Feesh 2-Part Calculator</p>
                 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <div class="form-group"><label>Current Ca</label><input type="number" id="calcCurrentCa" placeholder="..."></div>
-                    <div class="form-group"><label>Target Ca</label><input type="number" id="calcTargetCa" value="450"></div>
+                    <div class="form-group"><label>Current Alk (dKH)</label><input type="number" id="calcCurrentAlk" step="0.1" placeholder="..."></div>
+                    <div class="form-group"><label>Target Alk (dKH)</label><input type="number" id="calcTargetAlk" value="8.5" step="0.1"></div>
                 </div>
 
                 <div id="current-settings-group" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
                     <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 0.9em;">Current Blenny Doses (mL)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P1 (Ca)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P2 (Alk)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P3 (Tr)</label><input type="number" id="currP3" placeholder="0.0" step="0.1"></div>
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.7em;">P4 (Tr)</label><input type="number" id="currP4" placeholder="0.0" step="0.1"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 1 (Alk)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
+                        <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 2 (Ca)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
                     </div>
                 </div>
 
-                <button id="calcBtn">Calculate Recipe</button>
+                <button id="calcBtn">Calculate Dose</button>
                 <div id="calc-results" style="display:none;"></div>
             </div>
-        </div> <div class="card" style="margin-bottom: 25px;">
+        </div> 
+        
+        <div class="card" style="margin-bottom: 25px;">
             <h2>History</h2>
             <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
-            <div style="overflow-x: auto;"> <table id="historyTable">
+            <div style="overflow-x: auto;"> 
+                <table id="historyTable">
                     <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
                     <tbody></tbody>
                 </table>
@@ -93,6 +216,7 @@
         </div>
     </div>
 
+    <!-- LIGHTING TAB -->
     <div id="lighting" class="tab-content">
         <div class="card highlight" style="border-top-color: #fcd34d;">
             <h2>💡 Light Profile Generator</h2>
@@ -108,11 +232,9 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h3>🛠️ Manual Editor</h3>
                     <select id="editorHour" style="width:auto; padding:5px 15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:6px;">
-                        </select>
+                    </select>
                 </div>
-                
-                <div class="grid-small" id="manualInputs">
-                    </div>
+                <div class="grid-small" id="manualInputs"></div>
             </div>
 
             <div class="grid-small" style="margin-top: 25px;">
@@ -127,61 +249,70 @@
         </div>
     </div>
 
+    <!-- DOSING INSTRUCTIONS TAB -->
     <div id="instructions" class="tab-content">
         <div class="card highlight" style="margin-bottom: 25px;">
             <h2>🤖 Hydros Blenny Configuration</h2>
-            <p style="opacity: 0.7;">Setup guide for the 4-head doser.</p>
-             <h3>1. Pump Mapping</h3>
+            <p style="opacity: 0.7;">Setup guide for the dosing pumps.</p>
+            
+            <h3>1. Pump Mapping</h3>
             <div class="grid-small">
-                <div class="status-box" style="background:#6f42c1;">Doser 1<br><small>Ca (Master)</small></div>
-                <div class="status-box" style="background:#007bff;">Doser 2<br><small>Alk (2x)</small></div>
-                <div class="status-box" style="background:#20c997;">Doser 3<br><small>Iodine (0.5x)</small></div>
-                <div class="status-box" style="background:#f59e0b;">Doser 4<br><small>Bio (0.5x)</small></div>
+                <div class="status-box" style="background:#007bff;">Doser 1<br><small>Part 1 (Alk)</small></div>
+                <div class="status-box" style="background:#6f42c1;">Doser 2<br><small>Part 2 (Ca/Trace)</small></div>
             </div>
-             <h3>2. Hydros App Settings</h3>
+            
+            <h3 style="margin-top: 20px;">2. Hydros App Settings</h3>
             <table class="info-table">
                 <thead><tr><th>Setting</th><th>Value</th><th>Notes</th></tr></thead>
                 <tbody>
-                    <tr><td>Output Type</td><td>Dosing Pump</td><td>Create 4 outputs</td></tr>
+                    <tr><td>Output Type</td><td>Dosing Pump</td><td>Create 2 outputs</td></tr>
                     <tr><td>Dosing Mode</td><td>Schedule (Simple)</td><td>Spreads over 24h</td></tr>
-                    <tr><td>Safe Range</td><td>On</td><td>Set max daily limit</td></tr>
+                    <tr><td>Safe Range</td><td>On</td><td>Set max daily limit slightly above current</td></tr>
                 </tbody>
             </table>
-            <h3>3. Schedule Offsets</h3>
+            
+            <h3 style="margin-top: 20px;">3. Schedule Offsets</h3>
             <table class="info-table">
-                <thead><tr><th>Pump</th><th>Start</th><th>Dose</th></tr></thead>
+                <thead><tr><th>Pump</th><th>Start Time</th><th>Amount</th></tr></thead>
                 <tbody>
-                    <tr><td><strong>Doser 1</strong> (Ca)</td><td>00:00</td><td>Base Amount</td></tr>
-                    <tr><td><strong>Doser 2</strong> (Alk)</td><td>00:30</td><td>2.0 x [Doser 1]</td></tr>
-                    <tr><td><strong>Doser 3</strong> (Trace)</td><td>01:00</td><td>0.5 x [Doser 1]</td></tr>
-                    <tr><td><strong>Doser 4</strong> (Trace)</td><td>01:30</td><td>0.5 x [Doser 1]</td></tr>
+                    <tr><td><strong>Doser 1</strong> (Alk)</td><td>00:00</td><td>Target Daily Dose</td></tr>
+                    <tr><td><strong>Doser 2</strong> (Ca)</td><td>00:30</td><td>Target Daily Dose (Equal to Doser 1)</td></tr>
                 </tbody>
             </table>
+            <p style="font-size: 0.85em; color: var(--text-muted); margin-top: 10px;">
+                *Note: Offsetting the start time by 30 minutes ensures Alk and Ca are never dispensed into the tank simultaneously, preventing precipitation.
+            </p>
         </div>
+
         <div class="card">
-            <h2>📚 Red Sea Complete Reef Care</h2>
-            <h3>1. Recommended Parameters</h3>
-            <table class="info-table">
-                <thead><tr><th>Type</th><th>Salinity</th><th>Ca</th><th>Alk</th></tr></thead>
+            <h2>📚 Not A Feesh 2-Part System</h2>
+            
+            <h3>1. The Formula</h3>
+            <table class="info-table" style="margin-bottom: 20px;">
+                <thead><tr><th>Component</th><th>Contents</th><th>Key Benefits</th></tr></thead>
                 <tbody>
-                    <tr><td>Mixed Reef</td><td>34 ppt</td><td>450</td><td>11.5</td></tr>
-                    <tr><td>SPS Dominant</td><td>35 ppt</td><td>430</td><td>8.0</td></tr>
-                    <tr><td>ULNS</td><td>33 ppt</td><td>410</td><td>7.0</td></tr>
+                    <tr><td><b>Part 1</b></td><td>Alkalinity (Sodium Hydroxide)</td><td>Provides maximum pH boost (up to +0.2). Gets hot when mixed!</td></tr>
+                    <tr><td><b>Part 2</b></td><td>Calcium, Magnesium & Traces</td><td>ACS Reagent Grade purity. Complete suite of Strontium, Iodine, etc.</td></tr>
                 </tbody>
             </table>
-            <h3>2. Dosing Ratios</h3>
+
+            <h3>2. Recommended Parameters</h3>
             <table class="info-table">
-                <thead><tr><th>Supplement</th><th>Ratio</th><th>Per 1mL Ca</th></tr></thead>
+                <thead><tr><th>Type</th><th>Salinity</th><th>Alk (dKH)</th><th>Ca (ppm)</th></tr></thead>
                 <tbody>
-                    <tr><td><b>Part 1</b> (Ca & Mg)</td><td>1.0</td><td>1 mL</td></tr>
-                    <tr><td><b>Part 2</b> (Alk & pH)</td><td>2.0</td><td>2 mL</td></tr>
-                    <tr><td><b>Part 3</b> (Iodine)</td><td>0.5</td><td>0.5 mL</td></tr>
-                    <tr><td><b>Part 4</b> (Bio)</td><td>0.5</td><td>0.5 mL</td></tr>
+                    <tr><td>Standard Reef</td><td>34-35 ppt</td><td>8.0 - 8.4</td><td>420 - 440</td></tr>
+                    <tr><td>High Growth</td><td>35 ppt</td><td>8.5 - 9.0</td><td>440 - 460</td></tr>
                 </tbody>
             </table>
+            
+            <h3 style="margin-top: 20px;">3. Dosing Ratios</h3>
+            <p style="background: rgba(6, 182, 212, 0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                <strong>Strict 1:1 Ratio:</strong> Always dose equal amounts of Part 1 and Part 2. The formula is ionically balanced. Do not dose based on Calcium drop. Dose based solely on Alkalinity consumption.
+            </p>
         </div>
     </div>
 
+    <!-- MIXING TAB -->
     <div id="mixing" class="tab-content">
         <div class="card highlight" style="border-top-color: #0dcaf0;">
             <h2>🌊 Saltwater Mixing Station</h2>
@@ -199,6 +330,271 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        // --- 🕵️ ENVIRONMENT DETECTION 🕵️ ---
+        (function checkEnvironment() {
+            const isDev = window.location.hostname.includes('dev--');
+            const titleHeader = document.getElementById('appTitle');
+            if (isDev) {
+                document.title = '(DEV) Reef Command Center';
+                if (titleHeader) {
+                    titleHeader.innerHTML = '🚧 DEV: 389 Reef Command Center';
+                    titleHeader.style.color = '#d63384';
+                }
+            }
+        })();
+
+        // --- ⬇️ CONFIGURATION AREA ⬇️ ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbx3kGuD6DuZDGs7FJmbMtwLEQBWMsLwUV_BGLwknEhQanE-r2-dOphooa6_pP1U0dEo/exec";
+        
+        // Not A Feesh Configuration
+        const TANK_GAL = 35;
+        const NAF_ALK_MULTIPLIER = 0.5462436637; // Formula: Dose = 0.54624 * dKh_change * Gallons
+        const ALK_IMPACT_PER_ML = 1 / (NAF_ALK_MULTIPLIER * TANK_GAL); // How much 1mL raises dKH
+
+        const RANGES = {
+            alk: { min: 8.0, max: 10.0 }, ca: { min: 400, max: 460 }, mg: { min: 1250, max: 1450 },
+            no3: { min: 1, max: 15 }, po4: { min: 0.02, max: 0.1 }, ph: { min: 8.0, max: 8.4 }
+        };
+
+        let logs = [];
+        let chartInstance = null;
+        let lightChartInstance = null;
+
+        // Elements
+        const statusDisplay = document.getElementById('statusDisplay');
+        const historyTbody = document.querySelector('#historyTable tbody');
+        const saveEntryBtn = document.getElementById('saveEntryBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const calcBtn = document.getElementById('calcBtn');
+        const calcResults = document.getElementById('calc-results');
+        const dateInput = document.getElementById('date');
+        const calcCurrentAlkInput = document.getElementById('calcCurrentAlk');
+        const calcTargetAlkInput = document.getElementById('calcTargetAlk');
+        const tankCtx = document.getElementById('tankChart').getContext('2d');
+        const chartCheckboxes = document.querySelectorAll('.chart-check-label input');
+
+        const btnMix = document.getElementById('btnMix');
+        const mixVol = document.getElementById('mixVol');
+        const mixTarget = document.getElementById('mixTarget');
+        const mixResult = document.getElementById('mixResult');
+        const resGrams = document.getElementById('resGrams');
+        const resCups = document.getElementById('resCups');
+
+        // Light Elements
+        const lightCtx = document.getElementById('lightChart');
+        const editorHour = document.getElementById('editorHour');
+        const manualInputs = document.getElementById('manualInputs');
+
+        // Helpers
+        const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+        const formatDate = s => {
+            if(!s) return '-';
+            let clean = s.toString().split('T')[0];
+            const p = clean.split('-');
+            return p.length===3 ? `${p[1]}/${p[2]}/${p[0]}` : clean;
+        };
+        const getStatusClass = (t, v) => {
+            if(v==null) return '';
+            const r = RANGES[t]; if(!r) return '';
+            if(v>=r.min && v<=r.max) return 'good';
+            const b = (r.max-r.min)*0.5;
+            return (v>=r.min-b && v<=r.max+b) ? 'warn' : 'bad';
+        };
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                const target = document.getElementById(btn.dataset.target);
+                if(target) target.classList.add('active');
+                btn.classList.add('active');
+                if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) initLightChart();
+            });
+        });
+
+        // Init
+        if(dateInput) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+        if(saveEntryBtn) saveEntryBtn.addEventListener('click', submitLog);
+        if(refreshBtn) refreshBtn.addEventListener('click', () => loadData(true));
+        if(calcBtn) calcBtn.addEventListener('click', calculateDosing);
+
+        chartCheckboxes.forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                if(!chartInstance) return;
+                const idx = parseInt(e.target.dataset.idx);
+                chartInstance.setDatasetVisibility(idx, e.target.checked);
+                chartInstance.update();
+            });
+        });
+
+        // Salt Mix
+        if(btnMix) {
+            btnMix.addEventListener('click', () => {
+                const vol = parseFloat(mixVol.value), sg = parseFloat(mixTarget.value);
+                if(!vol || !sg) return;
+                const totalGrams = vol * 145 * ((sg - 1) / 0.026);
+                resGrams.innerText = Math.round(totalGrams);
+                resCups.innerText = (totalGrams / 280).toFixed(2);
+                mixResult.style.display = 'block';
+            });
+        }
+
+        // Lighting Logic
+        function initLightChart() {
+            if(lightChartInstance) lightChartInstance.destroy();
+            const hours = Array.from({length: 24}, (_, i) => i + ":00");
+            lightChartInstance = new Chart(lightCtx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [
+                        { label: 'White', data: new Array(24).fill(0), borderColor: '#fcd34d' },
+                        { label: 'Blue', data: new Array(24).fill(0), borderColor: '#0096ff' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // Load & Render
+        async function loadData(force) {
+            if(!statusDisplay) return;
+            statusDisplay.innerHTML = `<div class="spinner"></div>`;
+            try {
+                const d = await (await fetch(API_URL)).json();
+                logs = d.map(i => ({
+                    date: formatDate(i.date), alk: toNum(i.alk), ca: toNum(i.ca), mg: toNum(i.mg),
+                    no3: toNum(i.no3), po4: toNum(i.po4), ph: toNum(i.ph)
+                })).filter(i => i.date !== '-').sort((a,b) => new Date(a.date) - new Date(b.date));
+                renderAll();
+            } catch(e) { statusDisplay.innerHTML = 'Error Loading Data'; }
+        }
+
+        async function submitLog() {
+            const entry = {
+                date: dateInput.value, alk: document.getElementById('alk').value, ca: document.getElementById('ca').value,
+                mg: document.getElementById('mg').value, no3: document.getElementById('no3').value,
+                po4: document.getElementById('po4').value, ph: document.getElementById('ph').value
+            };
+            await fetch(API_URL, { method:'POST', mode:'no-cors', body:JSON.stringify(entry) });
+            loadData(true);
+        }
+
+        function renderAll() {
+            if(!logs.length) return;
+            const l = logs[logs.length-1];
+            statusDisplay.innerHTML = `
+                <div class="status-box ${getStatusClass('alk',l.alk)}">Alk: ${l.alk??'?'}</div>
+                <div class="status-box ${getStatusClass('ca',l.ca)}">Ca: ${l.ca??'?'}</div>
+                <div class="status-box ${getStatusClass('no3',l.no3)}">NO3: ${l.no3??'?'}</div>`;
+
+            historyTbody.innerHTML = [...logs].slice().reverse().map(i => `
+                <tr><td>${i.date}</td><td class="${getStatusClass('alk',i.alk)}">${i.alk??'-'}</td><td class="${getStatusClass('ca',i.ca)}">${i.ca??'-'}</td>
+                <td>${i.mg??'-'}</td><td>${i.no3??'-'}</td><td>${i.po4??'-'}</td><td>${i.ph??'-'}</td></tr>`).join('');
+
+            if(chartInstance) chartInstance.destroy();
+            
+            const allDatasets = [
+                { label: 'Alk', data: logs.map(x=>x.alk), borderColor: '#06b6d4', yAxisID: 'yAlk' },
+                { label: 'Ca',  data: logs.map(x=>x.ca),  borderColor: '#a855f7', yAxisID: 'yCa' },
+                { label: 'Mg',  data: logs.map(x=>x.mg),  borderColor: '#f97316', yAxisID: 'yMg' },
+                { label: 'NO3', data: logs.map(x=>x.no3), borderColor: '#22c55e', yAxisID: 'yNo3' },
+                { label: 'PO4', data: logs.map(x=>x.po4), borderColor: '#78716c', yAxisID: 'yPo4' },
+                { label: 'pH',  data: logs.map(x=>x.ph),  borderColor: '#ef4444', yAxisID: 'yPh' }
+            ];
+
+            chartCheckboxes.forEach(cb => {
+                const idx = parseInt(cb.dataset.idx);
+                allDatasets[idx].hidden = !cb.checked;
+            });
+
+            chartInstance = new Chart(tankCtx, {
+                type: 'line',
+                data: { labels: logs.map(x=>x.date), datasets: allDatasets },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        yAlk: { position: 'left',  display: 'auto' }, 
+                        yCa:  { position: 'right', display: 'auto', grid: { drawOnChartArea: false } },
+                        yMg:  { position: 'right', display: 'auto', grid: { drawOnChartArea: false } }, 
+                        yNo3: { position: 'left',  display: 'auto', grid: { drawOnChartArea: false } },
+                        yPo4: { position: 'right', display: 'auto', grid: { drawOnChartArea: false } },
+                        yPh:  { position: 'left',  display: 'auto', grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+
+        // --- 🧪 NOT A FEESH 2-PART CALCULATOR LOGIC ---
+        function calculateDosing() {
+            const cur = toNum(calcCurrentAlkInput.value);
+            const tgt = toNum(calcTargetAlkInput.value);
+            
+            if(!cur || !tgt) {
+                calcResults.innerHTML = `<p style="color:#ef4444; margin:0;">Please enter valid Alkalinity values.</p>`;
+                calcResults.style.display = 'block';
+                return;
+            }
+
+            const p1Curr = toNum(document.getElementById('currP1').value) || 0;
+            
+            let trueConsumptionAlk = 0;
+            const cl = logs.filter(l => l.alk != null).sort((a,b) => new Date(a.date) - new Date(b.date));
+            
+            if(cl.length >= 2) {
+                const n = cl[cl.length-1], o = cl[cl.length-2];
+                const days = Math.max(1, Math.abs((new Date(n.date) - new Date(o.date)) / 8.64e7));
+                
+                // 1. Calculate raw change in Alkalinity
+                const rawAlkChange = (o.alk - n.alk); 
+                
+                // 2. Add back what the doser supplied
+                const alkDosedPerDay = p1Curr * ALK_IMPACT_PER_ML;
+                const totalAlkAddedByDoser = alkDosedPerDay * days;
+                
+                // 3. True Consumption = (What went missing + what we added) / days
+                trueConsumptionAlk = (rawAlkChange + totalAlkAddedByDoser) / days;
+            }
+
+            // New Daily Dose (Not A Feesh Formula: Dose = Constant * dKH_Swing * Gallons)
+            // Or logically: trueConsumption / ALK_IMPACT_PER_ML
+            const newP1 = Math.max(0, trueConsumptionAlk / ALK_IMPACT_PER_ML);
+            
+            // Not A Feesh is a strict 1:1 ratio system
+            const newP2 = newP1;
+
+            // One time correction
+            const gap = tgt - cur;
+            const corrToday = Math.max(0, gap * NAF_ALK_MULTIPLIER * TANK_GAL);
+
+            calcResults.style.display = 'block';
+            calcResults.innerHTML = `
+                <h3 style="color:#f1f5f9; margin-top:0;">🧪 True Consumption Update</h3>
+                <p style="font-size:0.9em; color:#94a3b8;">True Daily Uptake: <b>${trueConsumptionAlk.toFixed(2)} dKH/day</b></p>
+                
+                <div style="margin-top:15px; padding:15px; border:1px dashed #475569; border-radius:8px; background: rgba(0,0,0,0.2);">
+                    <h4 style="margin:0 0 10px 0; color:#38bdf8;">📱 Suggested Blenny Settings</h4>
+                    <div style="font-family:monospace; color:#cbd5e1; font-size:1.1em; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>P1 (Alk): <b>${newP1.toFixed(1)} mL</b></div>
+                        <div>P2 (Ca):  <b>${newP2.toFixed(1)} mL</b></div>
+                    </div>
+                    <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05); font-size:0.85em;">
+                        <span style="color:#fcd34d;">⚠️ One-Time Correction:</span><br>
+                        Dose <b>${corrToday.toFixed(1)} mL</b> of Part 1 (Alk) to reach target of ${tgt} dKH today.
+                    </div>
+                </div>`;
+        }
+
+        loadData();
+    </script>
 </body>
 </html>
