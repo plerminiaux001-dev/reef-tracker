@@ -90,17 +90,53 @@
         button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--accent-glow); }
         button:disabled { background: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        /* Status Pills & Table Cells */
-        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        /* Status Grid & KPI Cards */
+        .status-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 15px; 
+        }
         .status-box { 
-            padding: 12px; border-radius: 12px; text-align: center; 
-            font-weight: 700; font-size: 1.1em; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+            padding: 15px 10px; 
+            border-radius: 12px; 
+            text-align: center; 
+            font-weight: 700; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255,255,255,0.05);
+            transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .status-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255,255,255,0.1);
+        }
+        .status-box.inactive {
+            opacity: 0.45;
+            filter: grayscale(60%);
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         .good { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); color: #0f172a !important; }
         .warn { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f172a !important; }
         .bad  { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); color: #0f172a !important; }
+
+        /* Dashboard Responsive Grid */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+        @media (min-width: 1024px) {
+            .dashboard-layout {
+                grid-template-columns: 2.2fr 1fr;
+                align-items: start;
+            }
+        }
+        .dashboard-main, .dashboard-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
 
         /* Table */
         table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; }
@@ -147,71 +183,81 @@
         <div class="card" style="margin-bottom: 25px;">
             <h2>Current Status</h2>
             <div class="status-grid" id="statusDisplay">
-                <div style="grid-column: span 3; padding: 20px;">
+                <div style="grid-column: 1 / -1; padding: 20px;">
                     <div class="spinner"></div>
                     <div style="margin-top:10px; font-size:0.9em; opacity: 0.7; text-align: center;">Loading Reef Data...</div>
                 </div>
             </div>
         </div>
 
-        <div class="grid">
-            <div class="card">
-                <h2>📝 Add New Log</h2>
-                <div class="form-group"><label>Date</label><input type="date" id="date"></div>
-                <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk" min="5" max="12"></div>
-                <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca" min="300" max="600"></div>
-                <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg" min="1000" max="1600"></div>
-                <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
-                <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
-                <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
-                <button id="saveEntryBtn">Save Entry</button>
-            </div>
-
-            <div class="card">
-                <h2>🧪 Dosing Assistant</h2>
-                <p style="opacity: 0.7; margin-bottom: 15px;">Not A Feesh 2-Part Calculator</p>
-                
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <div class="form-group"><label>Current Alk (dKH)</label><input type="number" id="calcCurrentAlk" step="0.1" placeholder="..."></div>
-                    <div class="form-group"><label>Target Alk (dKH)</label><input type="number" id="calcTargetAlk" value="8.5" step="0.1"></div>
-                </div>
-
-                <div id="current-settings-group" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
-                    <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 0.9em;">Current Blenny Doses (mL)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 1 (Alk)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 2 (Ca)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
+        <div class="dashboard-layout">
+            <!-- Left/Main Column: Chart & History -->
+            <div class="dashboard-main">
+                <!-- Trends Card -->
+                <div class="card">
+                    <h2 style="margin-bottom: 15px;">📈 Trends</h2>
+                    <div class="chart-controls">
+                        <label class="chart-check-label"><input type="checkbox" data-idx="0" checked> 🔵 Alk</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="1" checked> 🟣 Ca</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="2"> 🟠 Mg</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="3" checked> 🟢 NO3</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="4"> 🟤 PO4</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="5"> 🔴 pH</label>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tankChart"></canvas>
                     </div>
                 </div>
 
-                <button id="calcBtn">Calculate Dose</button>
-                <div id="calc-results" style="display:none;"></div>
+                <!-- History Card -->
+                <div class="card" style="margin-bottom: 25px;">
+                    <h2>History</h2>
+                    <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
+                    <div style="overflow-x: auto; max-height: 400px;"> 
+                        <table id="historyTable">
+                            <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div> 
-        
-        <div class="card" style="margin-bottom: 25px;">
-            <h2>History</h2>
-            <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
-            <div style="overflow-x: auto;"> 
-                <table id="historyTable">
-                    <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
-        <div class="card">
-            <h2 style="margin-bottom: 15px;">📈 Trends</h2>
-            <div class="chart-controls">
-                <label class="chart-check-label"><input type="checkbox" data-idx="0" checked> 🔵 Alk</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="1" checked> 🟣 Ca</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="2"> 🟠 Mg</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="3" checked> 🟢 NO3</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="4"> 🟤 PO4</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="5"> 🔴 pH</label>
-            </div>
-            <div class="chart-container">
-                <canvas id="tankChart"></canvas>
+            <!-- Right/Sidebar Column: Forms & Calculators -->
+            <div class="dashboard-sidebar">
+                <!-- Dosing Assistant Card -->
+                <div class="card">
+                    <h2>🧪 Dosing Assistant</h2>
+                    <p style="opacity: 0.7; margin-bottom: 15px;">Not A Feesh 2-Part Calculator</p>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div class="form-group"><label>Current Alk (dKH)</label><input type="number" id="calcCurrentAlk" step="0.1" placeholder="..."></div>
+                        <div class="form-group"><label>Target Alk (dKH)</label><input type="number" id="calcTargetAlk" value="8.5" step="0.1"></div>
+                    </div>
+
+                    <div id="current-settings-group" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
+                        <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 0.9em;">Current Blenny Doses (mL)</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 1 (Alk)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
+                            <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 2 (Ca)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
+                        </div>
+                    </div>
+
+                    <button id="calcBtn">Calculate Dose</button>
+                    <div id="calc-results" style="display:none;"></div>
+                </div>
+
+                <!-- Add Log Card -->
+                <div class="card">
+                    <h2>📝 Add New Log</h2>
+                    <div class="form-group"><label>Date</label><input type="date" id="date"></div>
+                    <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk" min="5" max="12"></div>
+                    <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca" min="300" max="600"></div>
+                    <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg" min="1000" max="1600"></div>
+                    <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
+                    <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
+                    <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
+                    <button id="saveEntryBtn">Save Entry</button>
+                </div>
             </div>
         </div>
     </div>
@@ -432,8 +478,27 @@
                 const idx = parseInt(e.target.dataset.idx);
                 chartInstance.setDatasetVisibility(idx, e.target.checked);
                 chartInstance.update();
+                
+                // Toggle active/inactive style on the KPI card
+                const card = statusDisplay.querySelector(`.status-box[data-idx="${idx}"]`);
+                if (card) {
+                    if (e.target.checked) {
+                        card.classList.remove('inactive');
+                    } else {
+                        card.classList.add('inactive');
+                    }
+                }
             });
         });
+
+        // Global KPI Card Toggle helper
+        window.toggleKPICard = function(idx) {
+            const cb = Array.from(chartCheckboxes).find(c => parseInt(c.dataset.idx) === idx);
+            if (cb) {
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+            }
+        };
 
         // Salt Mix
         if(btnMix) {
@@ -491,10 +556,29 @@
         function renderAll() {
             if(!logs.length) return;
             const l = logs[logs.length-1];
-            statusDisplay.innerHTML = `
-                <div class="status-box ${getStatusClass('alk',l.alk)}">Alk: ${l.alk??'?'}</div>
-                <div class="status-box ${getStatusClass('ca',l.ca)}">Ca: ${l.ca??'?'}</div>
-                <div class="status-box ${getStatusClass('no3',l.no3)}">NO3: ${l.no3??'?'}</div>`;
+            const params = [
+                { key: 'alk', label: 'Alkalinity', unit: 'dKH', val: l.alk, idx: 0 },
+                { key: 'ca',  label: 'Calcium',    unit: 'ppm', val: l.ca,  idx: 1 },
+                { key: 'mg',  label: 'Magnesium',  unit: 'ppm', val: l.mg,  idx: 2 },
+                { key: 'no3', label: 'Nitrate',    unit: 'ppm', val: l.no3, idx: 3 },
+                { key: 'po4', label: 'Phosphate',  unit: 'ppm', val: l.po4, idx: 4 },
+                { key: 'ph',  label: 'pH',         unit: '',    val: l.ph,  idx: 5 }
+            ];
+
+            statusDisplay.innerHTML = params.map(p => {
+                const statusClass = getStatusClass(p.key, p.val);
+                const cb = Array.from(chartCheckboxes).find(c => parseInt(c.dataset.idx) === p.idx);
+                const isChecked = cb ? cb.checked : false;
+                const inactiveClass = isChecked ? '' : 'inactive';
+                const r = RANGES[p.key];
+                return `
+                    <div class="status-box ${statusClass} ${inactiveClass}" data-idx="${p.idx}" style="cursor:pointer;" onclick="toggleKPICard(${p.idx})">
+                        <div style="font-size:0.75em; opacity:0.8; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">${p.label}</div>
+                        <div style="font-size:1.5em; font-weight:800; margin:4px 0;">${p.val != null ? p.val + (p.unit ? ' ' + p.unit : '') : '?'}</div>
+                        <div style="font-size:0.7em; opacity:0.65; font-weight:normal;">Range: ${r.min}-${r.max}</div>
+                    </div>
+                `;
+            }).join('');
 
             historyTbody.innerHTML = [...logs].slice().reverse().map(i => `
                 <tr><td>${i.date}</td><td class="${getStatusClass('alk',i.alk)}">${i.alk??'-'}</td><td class="${getStatusClass('ca',i.ca)}">${i.ca??'-'}</td>
