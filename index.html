@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Reef Command Center</title>
+
+    <!-- Grafana Faro Instrumentation -->
+    <script src="https://unpkg.com/@grafana/faro-web-sdk@latest/dist/faro-web-sdk.iife.js"></script>
+    <script>
+        window.GrafanaFaroWebSdk.initializeFaro({
+            url: 'https://faro-collector-prod-us-east-3.grafana.net/collect/e535115ecbfad2c6d71992a5a1141af3',
+            app: { name: 'reef-tracker', version: '1.0.0' },
+        });
+    </script>
+
+    <!-- Dependencies -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
