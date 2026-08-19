@@ -179,6 +179,235 @@
             animation: spin 1s linear infinite; margin: 0 auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Floating Action Button */
+        .fab-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: auto;
+            height: auto;
+            padding: 12px 20px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), 0 0 10px rgba(168, 85, 247, 0.2);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95em;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .fab-btn:hover {
+            background: linear-gradient(135deg, #c084fc 0%, #8b5cf6 100%);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5), 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+        .fab-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        /* Modal Content Card */
+        .modal-content {
+            width: 90%;
+            max-width: 550px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+            color: #c084fc;
+        }
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 0;
+            width: auto;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: #ef4444;
+            background: transparent;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* API Key Setup block */
+        .api-key-setup {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px dashed rgba(168, 85, 247, 0.3);
+        }
+
+        /* Parameters Preview */
+        .params-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .params-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .param-pill {
+            font-size: 0.8em;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+        .param-pill.good {
+            background: rgba(16, 185, 129, 0.2) !important;
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399 !important;
+        }
+        .param-pill.warn {
+            background: rgba(245, 158, 11, 0.2) !important;
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24 !important;
+        }
+        .param-pill.bad {
+            background: rgba(239, 68, 68, 0.2) !important;
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171 !important;
+        }
+
+        /* Chat History */
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 200px;
+            max-height: 350px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-message {
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.95em;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .user-message {
+            background: rgba(124, 58, 237, 0.25);
+            align-self: flex-end;
+            border-top-right-radius: 2px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            max-width: 85%;
+            color: var(--text-main);
+        }
+        .ai-message {
+            background: rgba(255, 255, 255, 0.05);
+            align-self: flex-start;
+            border-top-left-radius: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 85%;
+            color: var(--text-main);
+        }
+        .ai-message ul, .ai-message ol {
+            margin: 5px 0 5px 15px;
+            padding: 0;
+        }
+        .ai-message li {
+            margin-bottom: 4px;
+        }
+        .chat-message p {
+            margin: 0 0 8px 0;
+        }
+        .chat-message p:last-child {
+            margin-bottom: 0;
+        }
+        .chat-message h3 {
+            margin: 12px 0 6px 0;
+            font-size: 1.1em;
+            color: #c084fc;
+        }
+
+
+        /* Quick Prompts */
+        .quick-prompts {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        .quick-prompt-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 0.75em;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            width: auto;
+            transition: all 0.2s;
+            text-transform: none;
+            font-weight: 500;
+        }
+        .quick-prompt-btn:hover {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.3);
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -693,6 +922,328 @@
         }
 
         loadData();
+
+        // --- 🔮 GEMINI ASSISTANT MODAL LOGIC ---
+        document.addEventListener('DOMContentLoaded', function initGeminiAssistant() {
+            const openBtn = document.getElementById('openGeminiBtn');
+            const closeBtn = document.getElementById('closeGeminiBtn');
+            const modal = document.getElementById('geminiModal');
+            const apiKeyArea = document.getElementById('geminiApiKeyArea');
+            const apiKeyInput = document.getElementById('geminiApiKeyInput');
+            const saveKeyBtn = document.getElementById('saveApiKeyBtn');
+            const resetKeyLink = document.getElementById('resetApiKeyLink');
+            const paramsPills = document.getElementById('geminiParamsPills');
+            const chatHistory = document.getElementById('geminiChatHistory');
+            const loadingEl = document.getElementById('geminiLoading');
+            const promptInput = document.getElementById('geminiPromptInput');
+            const sendBtn = document.getElementById('sendGeminiBtn');
+
+            if (!openBtn || !closeBtn || !modal) return;
+
+            // Load API Key
+            let apiKey = localStorage.getItem('gemini_api_key') || '';
+            if (apiKey) {
+                apiKeyInput.value = apiKey;
+                apiKeyArea.style.display = 'none';
+            } else {
+                apiKeyArea.style.display = 'block';
+            }
+
+            // Event Listeners for Modal
+            openBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                updateParamsPreview();
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            });
+
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            // Close on overlay click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+
+            // Save API Key
+            saveKeyBtn.addEventListener('click', () => {
+                const val = apiKeyInput.value.trim();
+                if (!val) return alert('Please enter a valid API Key');
+                localStorage.setItem('gemini_api_key', val);
+                apiKey = val;
+                apiKeyArea.style.display = 'none';
+            });
+
+            // Reset API Key
+            resetKeyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                apiKeyInput.value = '';
+                localStorage.removeItem('gemini_api_key');
+                apiKey = '';
+                apiKeyArea.style.display = 'block';
+                apiKeyInput.focus();
+            });
+
+            // Quick Prompts
+            document.querySelectorAll('.quick-prompt-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    promptInput.value = btn.dataset.prompt;
+                    promptInput.focus();
+                });
+            });
+
+            // Send Message
+            async function sendMessage() {
+                const promptText = promptInput.value.trim();
+                if (!promptText) return;
+
+                if (!apiKey) {
+                    apiKeyArea.style.display = 'block';
+                    apiKeyInput.focus();
+                    return alert('Please configure and save your Gemini API Key first.');
+                }
+
+                // Add User Message to UI
+                appendMessage('user', promptText);
+                promptInput.value = '';
+
+                // Show Loading
+                loadingEl.style.display = 'block';
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                try {
+                    // Build Prompt with Parameter Context
+                    const l = logs.length ? logs[logs.length - 1] : null;
+                    let fullPrompt = "You are an expert reef keeping assistant. Answer the user's question about their aquarium. Keep your answers concise, structured, and focused on safety. Avoid long paragraphs, use bullet points where helpful.\n\n";
+                    if (l) {
+                        fullPrompt += `Current Aquarium Readings:\n`;
+                        if (l.alk != null) fullPrompt += `- Alkalinity: ${l.alk} dKH (Target: 8.0 - 10.0 dKH)\n`;
+                        if (l.ca != null) fullPrompt += `- Calcium: ${l.ca} ppm (Target: 400 - 460 ppm)\n`;
+                        if (l.mg != null) fullPrompt += `- Magnesium: ${l.mg} ppm (Target: 1250 - 1450 ppm)\n`;
+                        if (l.no3 != null) fullPrompt += `- Nitrate: ${l.no3} ppm (Target: 1.0 - 15.0 ppm)\n`;
+                        if (l.po4 != null) fullPrompt += `- Phosphate: ${l.po4} ppm (Target: 0.02 - 0.10 ppm)\n`;
+                        if (l.ph != null) fullPrompt += `- pH: ${l.ph} (Target: 8.0 - 8.4)\n`;
+                        fullPrompt += `\nNote any parameters that are out of range and explain potential causes and corrections.\n\n`;
+                    }
+                    fullPrompt += `User's Question: "${promptText}"`;
+
+                    // Call API
+                    const responseText = await callGemini(apiKey, fullPrompt);
+                    appendMessage('ai', responseText);
+                } catch (err) {
+                    appendMessage('ai', `❌ Error: ${err.message || 'Failed to get response. Please verify your API Key.'}`);
+                } finally {
+                    loadingEl.style.display = 'none';
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+            }
+
+            sendBtn.addEventListener('click', sendMessage);
+            promptInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Helper functions
+            function appendMessage(sender, text) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-message ${sender}-message`;
+                if (sender === 'ai') {
+                    msgDiv.innerHTML = formatMarkdown(text);
+                } else {
+                    msgDiv.innerText = text;
+                }
+                chatHistory.appendChild(msgDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            function updateParamsPreview() {
+                paramsPills.innerHTML = '';
+                if (!logs || logs.length === 0) {
+                    paramsPills.innerHTML = `<span style="font-size:0.85em; opacity:0.6;">No parameters logged yet.</span>`;
+                    return;
+                }
+                const l = logs[logs.length - 1];
+                const params = [
+                    { name: 'Alk', val: l.alk, key: 'alk', suffix: ' dKH' },
+                    { name: 'Ca', val: l.ca, key: 'ca', suffix: ' ppm' },
+                    { name: 'Mg', val: l.mg, key: 'mg', suffix: ' ppm' },
+                    { name: 'NO3', val: l.no3, key: 'no3', suffix: ' ppm' },
+                    { name: 'PO4', val: l.po4, key: 'po4', suffix: ' ppm' },
+                    { name: 'pH', val: l.ph, key: 'ph', suffix: '' }
+                ];
+                
+                params.forEach(p => {
+                    if (p.val != null) {
+                        const statusClass = getStatusClass(p.key, p.val);
+                        const pill = document.createElement('span');
+                        pill.className = `param-pill ${statusClass}`;
+                        pill.innerText = `${p.name}: ${p.val}${p.suffix}`;
+                        paramsPills.appendChild(pill);
+                    }
+                });
+            }
+
+            async function callGemini(key, text) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: text }] }]
+                    })
+                });
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+                throw new Error('Invalid response structure from Gemini API');
+            }
+
+            function formatMarkdown(text) {
+                if (!text) return '';
+                
+                // Basic HTML escaping
+                let html = text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+                
+                // Convert chemical formulas / subscripts e.g. $CO_2$ to CO<sub>2</sub>
+                html = html.replace(/\$([A-Za-z0-9]+)_([A-Za-z0-9]+)\$/g, '$1<sub>$2</sub>');
+                // Clean up any other math delimiters like $x$ to x
+                html = html.replace(/\$(.*?)\$/g, '$1');
+                
+                // Bold text **bold**
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                
+                const lines = html.split('\n');
+                let inList = false;
+                let listType = null;
+                let formattedLines = [];
+                
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    
+                    // Headers
+                    if (trimmed.startsWith('### ')) {
+                        if (inList) { formattedLines.push(`</${listType}>`); inList = false; listType = null; }
+                        formattedLines.push(`<h3>${trimmed.substring(4)}</h3>`);
+                    } else if (trimmed.startsWith('## ')) {
+                        if (inList) { formattedLines.push(`</${listType}>`); inList = false; listType = null; }
+                        formattedLines.push(`<h2>${trimmed.substring(3)}</h2>`);
+                    } else if (trimmed.startsWith('# ')) {
+                        if (inList) { formattedLines.push(`</${listType}>`); inList = false; listType = null; }
+                        formattedLines.push(`<h1>${trimmed.substring(2)}</h1>`);
+                    }
+                    // Lists
+                    else if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+                        if (!inList || listType !== 'ul') {
+                            if (inList) formattedLines.push(`</${listType}>`);
+                            formattedLines.push('<ul>');
+                            inList = true;
+                            listType = 'ul';
+                        }
+                        formattedLines.push(`<li>${trimmed.substring(2)}</li>`);
+                    } else if (/^\d+\.\s/.test(trimmed)) {
+                        const content = trimmed.replace(/^\d+\.\s/, '');
+                        if (!inList || listType !== 'ol') {
+                            if (inList) formattedLines.push(`</${listType}>`);
+                            formattedLines.push('<ol>');
+                            inList = true;
+                            listType = 'ol';
+                        }
+                        formattedLines.push(`<li>${content}</li>`);
+                    } 
+                    // Plain Paragraphs
+                    else {
+                        if (inList) {
+                            formattedLines.push(`</${listType}>`);
+                            inList = false;
+                            listType = null;
+                        }
+                        if (trimmed !== '') {
+                            formattedLines.push(`<p>${line}</p>`);
+                        }
+                    }
+                });
+                
+                if (inList) {
+                    formattedLines.push(`</${listType}>`);
+                }
+                
+                return formattedLines.join('');
+            }
+        });
     </script>
+
+    <!-- Floating Action Button -->
+    <button id="openGeminiBtn" class="fab-btn" title="Ask Gemini Reef Assistant">
+        ✨ Ask Gemini
+    </button>
+
+    <!-- Gemini Modal Overlay -->
+    <div id="geminiModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h2>✨ Gemini Reef Assistant</h2>
+                <button id="closeGeminiBtn" class="close-btn">&times;</button>
+            </div>
+            
+            <!-- API Key Setup -->
+            <div id="geminiApiKeyArea" class="api-key-setup" style="display: none;">
+                <p style="font-size: 0.85em; opacity: 0.8; margin-bottom: 10px;">
+                    To use the assistant, please enter your <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary);">Gemini API Key</a>:
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." style="flex: 1;">
+                    <button id="saveApiKeyBtn" style="width: auto; padding: 0 15px;">Save</button>
+                </div>
+            </div>
+
+            <!-- Parameters Preview -->
+            <div class="params-preview">
+                <span style="font-size: 0.85em; color: var(--text-muted);">Attaching Latest Readings:</span>
+                <div class="params-pills" id="geminiParamsPills">
+                    <!-- Dynamic pills will go here -->
+                </div>
+            </div>
+
+            <!-- Chat History Area -->
+            <div id="geminiChatHistory" class="chat-history">
+                <div class="chat-message ai-message">
+                    Hello! I'm Gemini, your Reef Assistant. I have loaded your latest parameters. Ask me anything about your reef readings, water stability, or dosing adjustments!
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="geminiLoading" style="display: none; text-align: center; margin: 10px 0;">
+                <div class="spinner" style="width: 25px; height: 25px;"></div>
+                <div style="font-size: 0.8em; color: var(--text-muted); margin-top: 5px;">Consulting Gemini...</div>
+            </div>
+
+            <!-- Prompt Input / Actions -->
+            <div class="chat-input-area">
+                <div class="quick-prompts">
+                    <button class="quick-prompt-btn" data-prompt="Analyze my current parameters and suggest corrections.">📊 Analyze Parameters</button>
+                    <button class="quick-prompt-btn" data-prompt="What should I do if my pH is low?">🧪 Explain pH Stability</button>
+                    <button class="quick-prompt-btn" data-prompt="Are my Calcium and Alkalinity balanced?">⚖️ Check Ca/Alk Balance</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="geminiPromptInput" placeholder="Ask about parameters, dosing, algae..." style="flex: 1;">
+                    <button id="sendGeminiBtn" style="width: auto; padding: 0 20px;">Send</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 0.75em; color: var(--text-muted);">
+                <span>Model: <b>gemini-3.5-flash</b></span>
+                <a href="#" id="resetApiKeyLink" style="color: #ef4444; text-decoration: none;">Change API Key</a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
