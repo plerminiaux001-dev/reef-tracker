@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Reef Command Center</title>
+
+    <!-- Grafana Faro Instrumentation -->
+    <script src="https://unpkg.com/@grafana/faro-web-sdk@latest/dist/faro-web-sdk.iife.js"></script>
+    <script>
+        window.GrafanaFaroWebSdk.initializeFaro({
+            url: 'https://faro-collector-prod-us-east-3.grafana.net/collect/e535115ecbfad2c6d71992a5a1141af3',
+            app: { name: 'reef-tracker', version: '1.0.0' },
+        });
+    </script>
+
+    <!-- Dependencies -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
@@ -27,7 +38,7 @@
             background: var(--bg-gradient); 
             color: var(--text-main); 
             padding: 20px; 
-            max-width: 1000px; 
+            max-width: 1500px; 
             margin: 0 auto; 
             min-height: 100vh; 
         }
@@ -90,17 +101,53 @@
         button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--accent-glow); }
         button:disabled { background: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        /* Status Pills & Table Cells */
-        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        /* Status Grid & KPI Cards */
+        .status-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 15px; 
+        }
         .status-box { 
-            padding: 12px; border-radius: 12px; text-align: center; 
-            font-weight: 700; font-size: 1.1em; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+            padding: 15px 10px; 
+            border-radius: 12px; 
+            text-align: center; 
+            font-weight: 700; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255,255,255,0.05);
+            transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .status-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255,255,255,0.1);
+        }
+        .status-box.inactive {
+            opacity: 0.45;
+            filter: grayscale(60%);
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         .good { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); color: #0f172a !important; }
         .warn { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f172a !important; }
         .bad  { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); color: #0f172a !important; }
+
+        /* Dashboard Responsive Grid */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+        @media (min-width: 1024px) {
+            .dashboard-layout {
+                grid-template-columns: 2.2fr 1fr;
+                align-items: start;
+            }
+        }
+        .dashboard-main, .dashboard-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
 
         /* Table */
         table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; }
@@ -120,7 +167,10 @@
         .chart-controls { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .chart-check-label { background: rgba(255,255,255,0.05); color: var(--text-muted); border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.9em; }
         .chart-check-label:hover { background: rgba(255,255,255,0.1); color: var(--text-main); }
-        .chart-container { height: 350px; position: relative; width: 100%; }
+        .chart-container { height: 400px; position: relative; width: 100%; }
+        @media (min-width: 1024px) {
+            .chart-container { height: 500px; }
+        }
 
         /* Spinner */
         .spinner {
@@ -129,6 +179,235 @@
             animation: spin 1s linear infinite; margin: 0 auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Floating Action Button */
+        .fab-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: auto;
+            height: auto;
+            padding: 12px 20px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), 0 0 10px rgba(168, 85, 247, 0.2);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95em;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .fab-btn:hover {
+            background: linear-gradient(135deg, #c084fc 0%, #8b5cf6 100%);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5), 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+        .fab-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        /* Modal Content Card */
+        .modal-content {
+            width: 90%;
+            max-width: 550px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+            color: #c084fc;
+        }
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 0;
+            width: auto;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: #ef4444;
+            background: transparent;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* API Key Setup block */
+        .api-key-setup {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px dashed rgba(168, 85, 247, 0.3);
+        }
+
+        /* Parameters Preview */
+        .params-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .params-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .param-pill {
+            font-size: 0.8em;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+        .param-pill.good {
+            background: rgba(16, 185, 129, 0.2) !important;
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399 !important;
+        }
+        .param-pill.warn {
+            background: rgba(245, 158, 11, 0.2) !important;
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24 !important;
+        }
+        .param-pill.bad {
+            background: rgba(239, 68, 68, 0.2) !important;
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171 !important;
+        }
+
+        /* Chat History */
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 200px;
+            max-height: 350px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-message {
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.95em;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .user-message {
+            background: rgba(124, 58, 237, 0.25);
+            align-self: flex-end;
+            border-top-right-radius: 2px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            max-width: 85%;
+            color: var(--text-main);
+        }
+        .ai-message {
+            background: rgba(255, 255, 255, 0.05);
+            align-self: flex-start;
+            border-top-left-radius: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 85%;
+            color: var(--text-main);
+        }
+        .ai-message ul, .ai-message ol {
+            margin: 5px 0 5px 15px;
+            padding: 0;
+        }
+        .ai-message li {
+            margin-bottom: 4px;
+        }
+        .chat-message p {
+            margin: 0 0 8px 0;
+        }
+        .chat-message p:last-child {
+            margin-bottom: 0;
+        }
+        .chat-message h3 {
+            margin: 12px 0 6px 0;
+            font-size: 1.1em;
+            color: #c084fc;
+        }
+
+
+        /* Quick Prompts */
+        .quick-prompts {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        .quick-prompt-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 0.75em;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            width: auto;
+            transition: all 0.2s;
+            text-transform: none;
+            font-weight: 500;
+        }
+        .quick-prompt-btn:hover {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.3);
+            transform: none;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -147,71 +426,81 @@
         <div class="card" style="margin-bottom: 25px;">
             <h2>Current Status</h2>
             <div class="status-grid" id="statusDisplay">
-                <div style="grid-column: span 3; padding: 20px;">
+                <div style="grid-column: 1 / -1; padding: 20px;">
                     <div class="spinner"></div>
                     <div style="margin-top:10px; font-size:0.9em; opacity: 0.7; text-align: center;">Loading Reef Data...</div>
                 </div>
             </div>
         </div>
 
-        <div class="grid">
-            <div class="card">
-                <h2>📝 Add New Log</h2>
-                <div class="form-group"><label>Date</label><input type="date" id="date"></div>
-                <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk" min="5" max="12"></div>
-                <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca" min="300" max="600"></div>
-                <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg" min="1000" max="1600"></div>
-                <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
-                <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
-                <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
-                <button id="saveEntryBtn">Save Entry</button>
-            </div>
-
-            <div class="card">
-                <h2>🧪 Dosing Assistant</h2>
-                <p style="opacity: 0.7; margin-bottom: 15px;">Not A Feesh 2-Part Calculator</p>
-                
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <div class="form-group"><label>Current Alk (dKH)</label><input type="number" id="calcCurrentAlk" step="0.1" placeholder="..."></div>
-                    <div class="form-group"><label>Target Alk (dKH)</label><input type="number" id="calcTargetAlk" value="8.5" step="0.1"></div>
-                </div>
-
-                <div id="current-settings-group" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
-                    <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 0.9em;">Current Blenny Doses (mL)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 1 (Alk)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
-                        <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 2 (Ca)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
+        <div class="dashboard-layout">
+            <!-- Left/Main Column: Chart & History -->
+            <div class="dashboard-main">
+                <!-- Trends Card -->
+                <div class="card">
+                    <h2 style="margin-bottom: 15px;">📈 Trends</h2>
+                    <div class="chart-controls">
+                        <label class="chart-check-label"><input type="checkbox" data-idx="0" checked> 🔵 Alk</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="1" checked> 🟣 Ca</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="2"> 🟠 Mg</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="3" checked> 🟢 NO3</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="4"> 🟤 PO4</label>
+                        <label class="chart-check-label"><input type="checkbox" data-idx="5"> 🔴 pH</label>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tankChart"></canvas>
                     </div>
                 </div>
 
-                <button id="calcBtn">Calculate Dose</button>
-                <div id="calc-results" style="display:none;"></div>
+                <!-- History Card -->
+                <div class="card" style="margin-bottom: 25px;">
+                    <h2>History</h2>
+                    <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
+                    <div style="overflow-x: auto; max-height: 400px;"> 
+                        <table id="historyTable">
+                            <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div> 
-        
-        <div class="card" style="margin-bottom: 25px;">
-            <h2>History</h2>
-            <button id="refreshBtn" style="width: auto; float: right; padding: 8px 15px; margin-top:-40px; font-size:0.8em;">↻ Sync</button>
-            <div style="overflow-x: auto;"> 
-                <table id="historyTable">
-                    <thead><tr><th>Date</th><th>Alk</th><th>Ca</th><th>Mg</th><th>NO3</th><th>PO4</th><th>pH</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
-        <div class="card">
-            <h2 style="margin-bottom: 15px;">📈 Trends</h2>
-            <div class="chart-controls">
-                <label class="chart-check-label"><input type="checkbox" data-idx="0" checked> 🔵 Alk</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="1" checked> 🟣 Ca</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="2"> 🟠 Mg</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="3" checked> 🟢 NO3</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="4"> 🟤 PO4</label>
-                <label class="chart-check-label"><input type="checkbox" data-idx="5"> 🔴 pH</label>
-            </div>
-            <div class="chart-container">
-                <canvas id="tankChart"></canvas>
+            <!-- Right/Sidebar Column: Forms & Calculators -->
+            <div class="dashboard-sidebar">
+                <!-- Dosing Assistant Card -->
+                <div class="card">
+                    <h2>🧪 Dosing Assistant</h2>
+                    <p style="opacity: 0.7; margin-bottom: 15px;">Not A Feesh 2-Part Calculator</p>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div class="form-group"><label>Current Alk (dKH)</label><input type="number" id="calcCurrentAlk" step="0.1" placeholder="..."></div>
+                        <div class="form-group"><label>Target Alk (dKH)</label><input type="number" id="calcTargetAlk" value="8.5" step="0.1"></div>
+                    </div>
+
+                    <div id="current-settings-group" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
+                        <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 0.9em;">Current Blenny Doses (mL)</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 1 (Alk)</label><input type="number" id="currP1" placeholder="0.0" step="0.1"></div>
+                            <div class="form-group" style="margin:0;"><label style="font-size:0.75em;">Part 2 (Ca)</label><input type="number" id="currP2" placeholder="0.0" step="0.1"></div>
+                        </div>
+                    </div>
+
+                    <button id="calcBtn">Calculate Dose</button>
+                    <div id="calc-results" style="display:none;"></div>
+                </div>
+
+                <!-- Add Log Card -->
+                <div class="card">
+                    <h2>📝 Add New Log</h2>
+                    <div class="form-group"><label>Date</label><input type="date" id="date"></div>
+                    <div class="form-group"><label>Alkalinity (dKH)</label><input type="number" step="0.1" id="alk" min="5" max="12"></div>
+                    <div class="form-group"><label>Calcium (ppm)</label><input type="number" id="ca" min="300" max="600"></div>
+                    <div class="form-group"><label>Magnesium (ppm)</label><input type="number" id="mg" min="1000" max="1600"></div>
+                    <div class="form-group"><label>Nitrate (ppm)</label><input type="number" step="0.1" id="no3"></div>
+                    <div class="form-group"><label>Phosphate (ppm)</label><input type="number" step="0.01" id="po4"></div>
+                    <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
+                    <button id="saveEntryBtn">Save Entry</button>
+                </div>
             </div>
         </div>
     </div>
@@ -432,8 +721,27 @@
                 const idx = parseInt(e.target.dataset.idx);
                 chartInstance.setDatasetVisibility(idx, e.target.checked);
                 chartInstance.update();
+                
+                // Toggle active/inactive style on the KPI card
+                const card = statusDisplay.querySelector(`.status-box[data-idx="${idx}"]`);
+                if (card) {
+                    if (e.target.checked) {
+                        card.classList.remove('inactive');
+                    } else {
+                        card.classList.add('inactive');
+                    }
+                }
             });
         });
+
+        // Global KPI Card Toggle helper
+        window.toggleKPICard = function(idx) {
+            const cb = Array.from(chartCheckboxes).find(c => parseInt(c.dataset.idx) === idx);
+            if (cb) {
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+            }
+        };
 
         // Salt Mix
         if(btnMix) {
@@ -491,10 +799,29 @@
         function renderAll() {
             if(!logs.length) return;
             const l = logs[logs.length-1];
-            statusDisplay.innerHTML = `
-                <div class="status-box ${getStatusClass('alk',l.alk)}">Alk: ${l.alk??'?'}</div>
-                <div class="status-box ${getStatusClass('ca',l.ca)}">Ca: ${l.ca??'?'}</div>
-                <div class="status-box ${getStatusClass('no3',l.no3)}">NO3: ${l.no3??'?'}</div>`;
+            const params = [
+                { key: 'alk', label: 'Alkalinity', unit: 'dKH', val: l.alk, idx: 0 },
+                { key: 'ca',  label: 'Calcium',    unit: 'ppm', val: l.ca,  idx: 1 },
+                { key: 'mg',  label: 'Magnesium',  unit: 'ppm', val: l.mg,  idx: 2 },
+                { key: 'no3', label: 'Nitrate',    unit: 'ppm', val: l.no3, idx: 3 },
+                { key: 'po4', label: 'Phosphate',  unit: 'ppm', val: l.po4, idx: 4 },
+                { key: 'ph',  label: 'pH',         unit: '',    val: l.ph,  idx: 5 }
+            ];
+
+            statusDisplay.innerHTML = params.map(p => {
+                const statusClass = getStatusClass(p.key, p.val);
+                const cb = Array.from(chartCheckboxes).find(c => parseInt(c.dataset.idx) === p.idx);
+                const isChecked = cb ? cb.checked : false;
+                const inactiveClass = isChecked ? '' : 'inactive';
+                const r = RANGES[p.key];
+                return `
+                    <div class="status-box ${statusClass} ${inactiveClass}" data-idx="${p.idx}" style="cursor:pointer;" onclick="toggleKPICard(${p.idx})">
+                        <div style="font-size:0.75em; opacity:0.8; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">${p.label}</div>
+                        <div style="font-size:1.5em; font-weight:800; margin:4px 0;">${p.val != null ? p.val + (p.unit ? ' ' + p.unit : '') : '?'}</div>
+                        <div style="font-size:0.7em; opacity:0.65; font-weight:normal;">Range: ${r.min}-${r.max}</div>
+                    </div>
+                `;
+            }).join('');
 
             historyTbody.innerHTML = [...logs].slice().reverse().map(i => `
                 <tr><td>${i.date}</td><td class="${getStatusClass('alk',i.alk)}">${i.alk??'-'}</td><td class="${getStatusClass('ca',i.ca)}">${i.ca??'-'}</td>
@@ -595,6 +922,328 @@
         }
 
         loadData();
+
+        // --- 🔮 GEMINI ASSISTANT MODAL LOGIC ---
+        document.addEventListener('DOMContentLoaded', function initGeminiAssistant() {
+            const openBtn = document.getElementById('openGeminiBtn');
+            const closeBtn = document.getElementById('closeGeminiBtn');
+            const modal = document.getElementById('geminiModal');
+            const apiKeyArea = document.getElementById('geminiApiKeyArea');
+            const apiKeyInput = document.getElementById('geminiApiKeyInput');
+            const saveKeyBtn = document.getElementById('saveApiKeyBtn');
+            const resetKeyLink = document.getElementById('resetApiKeyLink');
+            const paramsPills = document.getElementById('geminiParamsPills');
+            const chatHistory = document.getElementById('geminiChatHistory');
+            const loadingEl = document.getElementById('geminiLoading');
+            const promptInput = document.getElementById('geminiPromptInput');
+            const sendBtn = document.getElementById('sendGeminiBtn');
+
+            if (!openBtn || !closeBtn || !modal) return;
+
+            // Load API Key
+            let apiKey = localStorage.getItem('gemini_api_key') || '';
+            if (apiKey) {
+                apiKeyInput.value = apiKey;
+                apiKeyArea.style.display = 'none';
+            } else {
+                apiKeyArea.style.display = 'block';
+            }
+
+            // Event Listeners for Modal
+            openBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                updateParamsPreview();
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            });
+
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            // Close on overlay click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+
+            // Save API Key
+            saveKeyBtn.addEventListener('click', () => {
+                const val = apiKeyInput.value.trim();
+                if (!val) return alert('Please enter a valid API Key');
+                localStorage.setItem('gemini_api_key', val);
+                apiKey = val;
+                apiKeyArea.style.display = 'none';
+            });
+
+            // Reset API Key
+            resetKeyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                apiKeyInput.value = '';
+                localStorage.removeItem('gemini_api_key');
+                apiKey = '';
+                apiKeyArea.style.display = 'block';
+                apiKeyInput.focus();
+            });
+
+            // Quick Prompts
+            document.querySelectorAll('.quick-prompt-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    promptInput.value = btn.dataset.prompt;
+                    promptInput.focus();
+                });
+            });
+
+            // Send Message
+            async function sendMessage() {
+                const promptText = promptInput.value.trim();
+                if (!promptText) return;
+
+                if (!apiKey) {
+                    apiKeyArea.style.display = 'block';
+                    apiKeyInput.focus();
+                    return alert('Please configure and save your Gemini API Key first.');
+                }
+
+                // Add User Message to UI
+                appendMessage('user', promptText);
+                promptInput.value = '';
+
+                // Show Loading
+                loadingEl.style.display = 'block';
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                try {
+                    // Build Prompt with Parameter Context
+                    const l = logs.length ? logs[logs.length - 1] : null;
+                    let fullPrompt = "You are an expert reef keeping assistant. Answer the user's question about their aquarium. Keep your answers concise, structured, and focused on safety. Avoid long paragraphs, use bullet points where helpful.\n\n";
+                    if (l) {
+                        fullPrompt += `Current Aquarium Readings:\n`;
+                        if (l.alk != null) fullPrompt += `- Alkalinity: ${l.alk} dKH (Target: 8.0 - 10.0 dKH)\n`;
+                        if (l.ca != null) fullPrompt += `- Calcium: ${l.ca} ppm (Target: 400 - 460 ppm)\n`;
+                        if (l.mg != null) fullPrompt += `- Magnesium: ${l.mg} ppm (Target: 1250 - 1450 ppm)\n`;
+                        if (l.no3 != null) fullPrompt += `- Nitrate: ${l.no3} ppm (Target: 1.0 - 15.0 ppm)\n`;
+                        if (l.po4 != null) fullPrompt += `- Phosphate: ${l.po4} ppm (Target: 0.02 - 0.10 ppm)\n`;
+                        if (l.ph != null) fullPrompt += `- pH: ${l.ph} (Target: 8.0 - 8.4)\n`;
+                        fullPrompt += `\nNote any parameters that are out of range and explain potential causes and corrections.\n\n`;
+                    }
+                    fullPrompt += `User's Question: "${promptText}"`;
+
+                    // Call API
+                    const responseText = await callGemini(apiKey, fullPrompt);
+                    appendMessage('ai', responseText);
+                } catch (err) {
+                    appendMessage('ai', `❌ Error: ${err.message || 'Failed to get response. Please verify your API Key.'}`);
+                } finally {
+                    loadingEl.style.display = 'none';
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+            }
+
+            sendBtn.addEventListener('click', sendMessage);
+            promptInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Helper functions
+            function appendMessage(sender, text) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-message ${sender}-message`;
+                if (sender === 'ai') {
+                    msgDiv.innerHTML = formatMarkdown(text);
+                } else {
+                    msgDiv.innerText = text;
+                }
+                chatHistory.appendChild(msgDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            function updateParamsPreview() {
+                paramsPills.innerHTML = '';
+                if (!logs || logs.length === 0) {
+                    paramsPills.innerHTML = `<span style="font-size:0.85em; opacity:0.6;">No parameters logged yet.</span>`;
+                    return;
+                }
+                const l = logs[logs.length - 1];
+                const params = [
+                    { name: 'Alk', val: l.alk, key: 'alk', suffix: ' dKH' },
+                    { name: 'Ca', val: l.ca, key: 'ca', suffix: ' ppm' },
+                    { name: 'Mg', val: l.mg, key: 'mg', suffix: ' ppm' },
+                    { name: 'NO3', val: l.no3, key: 'no3', suffix: ' ppm' },
+                    { name: 'PO4', val: l.po4, key: 'po4', suffix: ' ppm' },
+                    { name: 'pH', val: l.ph, key: 'ph', suffix: '' }
+                ];
+                
+                params.forEach(p => {
+                    if (p.val != null) {
+                        const statusClass = getStatusClass(p.key, p.val);
+                        const pill = document.createElement('span');
+                        pill.className = `param-pill ${statusClass}`;
+                        pill.innerText = `${p.name}: ${p.val}${p.suffix}`;
+                        paramsPills.appendChild(pill);
+                    }
+                });
+            }
+
+            async function callGemini(key, text) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: text }] }]
+                    })
+                });
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+                throw new Error('Invalid response structure from Gemini API');
+            }
+
+            function formatMarkdown(text) {
+                if (!text) return '';
+                
+                // Basic HTML escaping
+                let html = text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+                
+                // Convert chemical formulas / subscripts e.g. $CO_2$ to CO<sub>2</sub>
+                html = html.replace(/\$([A-Za-z0-9]+)_([A-Za-z0-9]+)\$/g, '$1<sub>$2</sub>');
+                // Clean up any other math delimiters like $x$ to x
+                html = html.replace(/\$(.*?)\$/g, '$1');
+                
+                // Bold text **bold**
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                
+                const lines = html.split('\n');
+                let inList = false;
+                let listType = null;
+                let formattedLines = [];
+                
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    
+                    // Headers
+                    if (trimmed.startsWith('### ')) {
+                        if (inList) { formattedLines.push(`</${listType}>`); inList = false; listType = null; }
+                        formattedLines.push(`<h3>${trimmed.substring(4)}</h3>`);
+                    } else if (trimmed.startsWith('## ')) {
+                        if (inList) { formattedLines.push(`</${listType}>`); inList = false; listType = null; }
+                        formattedLines.push(`<h2>${trimmed.substring(3)}</h2>`);
+                    } else if (trimmed.startsWith('# ')) {
+                        if (inList) { formattedLines.push(`</${listType}>`); inList = false; listType = null; }
+                        formattedLines.push(`<h1>${trimmed.substring(2)}</h1>`);
+                    }
+                    // Lists
+                    else if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+                        if (!inList || listType !== 'ul') {
+                            if (inList) formattedLines.push(`</${listType}>`);
+                            formattedLines.push('<ul>');
+                            inList = true;
+                            listType = 'ul';
+                        }
+                        formattedLines.push(`<li>${trimmed.substring(2)}</li>`);
+                    } else if (/^\d+\.\s/.test(trimmed)) {
+                        const content = trimmed.replace(/^\d+\.\s/, '');
+                        if (!inList || listType !== 'ol') {
+                            if (inList) formattedLines.push(`</${listType}>`);
+                            formattedLines.push('<ol>');
+                            inList = true;
+                            listType = 'ol';
+                        }
+                        formattedLines.push(`<li>${content}</li>`);
+                    } 
+                    // Plain Paragraphs
+                    else {
+                        if (inList) {
+                            formattedLines.push(`</${listType}>`);
+                            inList = false;
+                            listType = null;
+                        }
+                        if (trimmed !== '') {
+                            formattedLines.push(`<p>${line}</p>`);
+                        }
+                    }
+                });
+                
+                if (inList) {
+                    formattedLines.push(`</${listType}>`);
+                }
+                
+                return formattedLines.join('');
+            }
+        });
     </script>
+
+    <!-- Floating Action Button -->
+    <button id="openGeminiBtn" class="fab-btn" title="Ask Gemini Reef Assistant">
+        ✨ Ask Gemini
+    </button>
+
+    <!-- Gemini Modal Overlay -->
+    <div id="geminiModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h2>✨ Gemini Reef Assistant</h2>
+                <button id="closeGeminiBtn" class="close-btn">&times;</button>
+            </div>
+            
+            <!-- API Key Setup -->
+            <div id="geminiApiKeyArea" class="api-key-setup" style="display: none;">
+                <p style="font-size: 0.85em; opacity: 0.8; margin-bottom: 10px;">
+                    To use the assistant, please enter your <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary);">Gemini API Key</a>:
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." style="flex: 1;">
+                    <button id="saveApiKeyBtn" style="width: auto; padding: 0 15px;">Save</button>
+                </div>
+            </div>
+
+            <!-- Parameters Preview -->
+            <div class="params-preview">
+                <span style="font-size: 0.85em; color: var(--text-muted);">Attaching Latest Readings:</span>
+                <div class="params-pills" id="geminiParamsPills">
+                    <!-- Dynamic pills will go here -->
+                </div>
+            </div>
+
+            <!-- Chat History Area -->
+            <div id="geminiChatHistory" class="chat-history">
+                <div class="chat-message ai-message">
+                    Hello! I'm Gemini, your Reef Assistant. I have loaded your latest parameters. Ask me anything about your reef readings, water stability, or dosing adjustments!
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="geminiLoading" style="display: none; text-align: center; margin: 10px 0;">
+                <div class="spinner" style="width: 25px; height: 25px;"></div>
+                <div style="font-size: 0.8em; color: var(--text-muted); margin-top: 5px;">Consulting Gemini...</div>
+            </div>
+
+            <!-- Prompt Input / Actions -->
+            <div class="chat-input-area">
+                <div class="quick-prompts">
+                    <button class="quick-prompt-btn" data-prompt="Analyze my current parameters and suggest corrections.">📊 Analyze Parameters</button>
+                    <button class="quick-prompt-btn" data-prompt="What should I do if my pH is low?">🧪 Explain pH Stability</button>
+                    <button class="quick-prompt-btn" data-prompt="Are my Calcium and Alkalinity balanced?">⚖️ Check Ca/Alk Balance</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="geminiPromptInput" placeholder="Ask about parameters, dosing, algae..." style="flex: 1;">
+                    <button id="sendGeminiBtn" style="width: auto; padding: 0 20px;">Send</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 0.75em; color: var(--text-muted);">
+                <span>Model: <b>gemini-3.5-flash</b></span>
+                <a href="#" id="resetApiKeyLink" style="color: #ef4444; text-decoration: none;">Change API Key</a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
