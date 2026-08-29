@@ -21,6 +21,12 @@ We have successfully redesigned the **Dashboard** page of the Reef Command Cente
    * Clicking any KPI card dynamically shows/hides the corresponding line in the Trends Chart.
    * Deselected parameter cards are dimmed/greyed out.
 
+4. **Multi-Tank Support (WB35 & IM24)**:
+   * Segmented pill switcher in the header to toggle between **33G Waterbox** and **24G Reef**.
+   * Dynamically loads data from `WB35` or `IM24` sheet tabs in Google Sheets.
+   * Adapts the **Dosing Assistant** to the active tank volume (33 gal vs 24 gal).
+   * Automatically attaches active sheet tag to **Add New Log** submissions.
+
 ---
 
 ## 📸 Verification Results
