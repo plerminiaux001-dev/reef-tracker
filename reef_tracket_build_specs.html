@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>389 Reef Command Center - Overview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Neutrals with Ocean Teal Accents -->
+    <!-- Application Structure Plan: A clean, scrolling single-page presentation designed to act as an interactive manual. It begins with a high-level summary, moves into an interactive 'Feature Explorer' (allowing users to click through the main app capabilities without scrolling past walls of text), features a live chart demonstrating the app's visualization capabilities along with its configuration ranges, and concludes with technical architecture details. This structure organizes the README into digestible, task-oriented sections for optimal usability. -->
+    <!-- Visualization & Content Choices: 
+    1. Overview -> Inform -> Hero Text -> High impact, clear context -> HTML/Tailwind.
+    2. Features -> Organize -> Interactive Tabs -> Allows deep dive into specific app functions without visual clutter -> Vanilla JS + Tailwind.
+    3. Safe Ranges/Trends -> Compare/Inform -> Line Chart -> Directly demonstrates the app's core tracking feature mentioned in the report -> Chart.js.
+    4. Tech Stack -> Inform -> Grid Cards -> Easy scannability for technical readers -> HTML/Tailwind. 
+    Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        sand: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 800: '#292524', 900: '#1c1917' },
+                        ocean: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 800: '#075985' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #fafaf9; color: #292524; }
+        .chart-container { position: relative; width: 100%; max-width: 900px; margin-left: auto; margin-right: auto; height: 350px; max-height: 450px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        
+        .feature-btn { transition: all 0.2s ease-in-out; border-left: 4px solid transparent; }
+        .feature-btn:hover { background-color: #f5f5f4; }
+        .feature-btn.active { background-color: #e0f2fe; border-left-color: #0284c7; color: #075985; font-weight: 600; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🐠</span>
+                <span class="font-bold text-ocean-800 text-lg tracking-tight">Reef Command Center <span class="text-sm font-normal text-sand-400 ml-2">Documentation</span></span>
+            </div>
+            <div class="hidden sm:flex space-x-6 text-sm font-medium text-sand-800">
+                <a href="#overview" class="hover:text-ocean-600 transition-colors">Overview</a>
+                <a href="#features" class="hover:text-ocean-600 transition-colors">Features</a>
+                <a href="#config" class="hover:text-ocean-600 transition-colors">Configuration</a>
+                <a href="#tech" class="hover:text-ocean-600 transition-colors">Architecture</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <section id="overview" class="text-center max-w-3xl mx-auto mt-8">
+            <p class="text-ocean-600 font-semibold tracking-wide uppercase text-sm mb-3">Project Overview</p>
+            <h1 class="text-4xl sm:text-5xl font-bold text-sand-900 mb-6 leading-tight">Your Complete Reef Aquarium Management Suite</h1>
+            <p class="text-lg text-sand-800 leading-relaxed">
+                A web-based dashboard designed for reef aquarium enthusiasts. It provides a centralized platform to track vital water parameters, calculate complex dosing schedules, and manage saltwater mixing with precision and ease.
+            </p>
+        </section>
+
+        <section id="features" class="bg-white rounded-2xl shadow-sm border border-sand-200 overflow-hidden">
+            <div class="p-8 border-b border-sand-100 bg-sand-50">
+                <h2 class="text-2xl font-bold text-sand-900">Application Features</h2>
+                <p class="text-sand-800 mt-2">The application is divided into four primary modules. Select a module below to explore its capabilities.</p>
+            </div>
+            
+            <div class="flex flex-col md:flex-row">
+                <div class="w-full md:w-1/3 bg-white border-r border-sand-100 p-4" id="feature-nav">
+                </div>
+                
+                <div class="w-full md:w-2/3 p-8 bg-sand-50/30" id="feature-content-area">
+                    <div id="feature-display" class="fade-in h-full flex flex-col justify-center">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="config" class="space-y-8">
+            <div class="text-center max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-sand-900 mb-4">System Configuration & Ranges</h2>
+                <p class="text-sand-800">
+                    The application logic is pre-configured for a 35-gallon system using the Not A Feesh (NAF) formula. Below is a visual representation of the target safe ranges tracked by the dashboard's trend charts.
+                </p>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-sand-200">
+                <div class="flex flex-wrap gap-4 mb-8 justify-center">
+                    <div class="bg-ocean-50 text-ocean-800 px-4 py-2 rounded-lg border border-ocean-100 flex items-center gap-2">
+                        <span class="text-xl">🌊</span>
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wider opacity-70">Tank Volume</div>
+                            <div class="font-bold text-lg">35 Gallons</div>
+                        </div>
+                    </div>
+                    <div class="bg-sand-100 text-sand-800 px-4 py-2 rounded-lg border border-sand-200 flex items-center gap-2">
+                        <span class="text-xl">🧮</span>
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wider opacity-70">NAF Alk Multiplier</div>
+                            <div class="font-bold text-lg">0.5462436637</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="rangeChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-sand-800 mt-4 italic">Interactive visualization demonstrating the Dashboard's charting capabilities and configuration targets.</p>
+            </div>
+        </section>
+
+        <section id="tech" class="bg-ocean-800 rounded-3xl p-10 text-white shadow-lg mb-12">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold mb-4">Technical Architecture</h2>
+                <p class="text-ocean-100 max-w-2xl mx-auto">Built with a lightweight, framework-free approach prioritizing performance and simplicity.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-ocean-900/50 p-6 rounded-xl border border-ocean-600 hover:bg-ocean-700 transition-colors">
+                    <div class="text-3xl mb-3">🎨</div>
+                    <h3 class="font-bold text-lg mb-2">Frontend</h3>
+                    <p class="text-ocean-100 text-sm leading-relaxed">HTML5 & CSS3 with a modern responsive layout utilizing glassmorphism design principles.</p>
+                </div>
+                <div class="bg-ocean-900/50 p-6 rounded-xl border border-ocean-600 hover:bg-ocean-700 transition-colors">
+                    <div class="text-3xl mb-3">⚡</div>
+                    <h3 class="font-bold text-lg mb-2">Logic</h3>
+                    <p class="text-ocean-100 text-sm leading-relaxed">Vanilla JavaScript. Consolidated architecture with absolutely zero heavy framework dependencies.</p>
+                </div>
+                <div class="bg-ocean-900/50 p-6 rounded-xl border border-ocean-600 hover:bg-ocean-700 transition-colors">
+                    <div class="text-3xl mb-3">📈</div>
+                    <h3 class="font-bold text-lg mb-2">Visualization</h3>
+                    <p class="text-ocean-100 text-sm leading-relaxed">Chart.js implementation for highly interactive and dynamic parameter trend visualizations.</p>
+                </div>
+                <div class="bg-ocean-900/50 p-6 rounded-xl border border-ocean-600 hover:bg-ocean-700 transition-colors">
+                    <div class="text-3xl mb-3">☁️</div>
+                    <h3 class="font-bold text-lg mb-2">Backend & Deploy</h3>
+                    <p class="text-ocean-100 text-sm leading-relaxed">Google Apps Script for cloud data persistence. Deployed continuously via Netlify on push.</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-sm text-ocean-200 bg-ocean-900/30 py-3 rounded-lg border border-ocean-700/50">
+                <span class="font-semibold">Environment Detection:</span> URLs containing <code class="bg-ocean-900 px-1 rounded text-white">dev--</code> trigger a visual DEV MODE indicator. Licensed under MIT.
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const featuresData = [
+            {
+                id: 'dashboard',
+                icon: '📊',
+                title: 'Dashboard',
+                desc: 'The central hub for monitoring and recording daily tank parameters.',
+                bullets: [
+                    '<strong>Real-time Status:</strong> Instant view of Alk, Ca, and NO3 with color-coded health indicators (green, yellow, red).',
+                    '<strong>Comprehensive Logging:</strong> Input fields for Alkalinity, Calcium, Magnesium, Nitrate, Phosphate, and pH.',
+                    '<strong>Trend Visualization:</strong> Interactive Chart.js graphs allowing users to toggle specific data series on/off.',
+                    '<strong>Historical Data:</strong> A complete, highlighted tabular log of all past measurements.'
+                ]
+            },
+            {
+                id: 'dosing',
+                icon: '🧪',
+                title: 'Dosing Assistant',
+                desc: 'Advanced calculator specifically built for the Not A Feesh (NAF) 2-Part system.',
+                bullets: [
+                    '<strong>NAF Calculator:</strong> Computes exact dosing amounts based strictly on Alkalinity (dKH) consumption.',
+                    '<strong>True Consumption:</strong> Analyzes historical logs versus daily doser additions to find the actual tank uptake.',
+                    '<strong>Balanced 1:1 Dosing:</strong> Ensures mathematically precise equal daily doses for Part 1 (Alk/NaOH) and Part 2 (Ca/Mg/Trace).',
+                    '<strong>Correction Logic:</strong> Suggests one-time corrective doses if Alkalinity drops below the target threshold.'
+                ]
+            },
+            {
+                id: 'instructions',
+                icon: '📋',
+                title: 'Dosing Instructions',
+                desc: 'Configuration guides for hardware and chemical systems.',
+                bullets: [
+                    '<strong>Hydros Blenny Setup:</strong> Step-by-step pump mapping and scheduling guide.',
+                    '<strong>Precipitation Prevention:</strong> Details proper schedule offsets (e.g., 30-minute delays between parts) to prevent chemical precipitation.',
+                    '<strong>NAF System Guide:</strong> Crucial information regarding the NaOH-based pH boosting properties of the system.',
+                    '<strong>Ratio Warnings:</strong> Reinforces the strict 1:1 dosing requirement.'
+                ]
+            },
+            {
+                id: 'mixing',
+                icon: '🌊',
+                title: 'Salt Mixer',
+                desc: 'Utility for precise saltwater preparation.',
+                bullets: [
+                    '<strong>Coral Pro Integration:</strong> Built specifically for Red Sea Coral Pro salt parameters.',
+                    '<strong>Dynamic Calculation:</strong> Inputs for water volume and target specific gravity.',
+                    '<strong>Dual Output:</strong> Provides required salt amounts in both exact grams and approximate cups for convenience.'
+                ]
+            }
+        ];
+
+        const navContainer = document.getElementById('feature-nav');
+        const displayContainer = document.getElementById('feature-display');
+
+        function renderFeature(feature) {
+            displayContainer.innerHTML = '';
+            
+            const contentHTML = `
+                <div class="fade-in">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-4xl">${feature.icon}</span>
+                        <h3 class="text-2xl font-bold text-sand-900">${feature.title}</h3>
+                    </div>
+                    <p class="text-lg text-sand-800 mb-6">${feature.desc}</p>
+                    <div class="bg-white rounded-xl p-6 border border-sand-200 shadow-sm">
+                        <h4 class="text-sm font-bold text-ocean-600 uppercase tracking-wider mb-4">Key Capabilities</h4>
+                        <ul class="space-y-3">
+                            ${feature.bullets.map(bullet => `
+                                <li class="flex items-start gap-3">
+                                    <span class="text-ocean-500 mt-1">✓</span>
+                                    <span class="text-sand-800">${bullet}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            displayContainer.innerHTML = contentHTML;
+        }
+
+        featuresData.forEach((feature, index) => {
+            const btn = document.createElement('button');
+            btn.className = `feature-btn w-full text-left px-5 py-4 rounded-lg mb-2 text-sand-800 flex items-center gap-3 ${index === 0 ? 'active' : ''}`;
+            btn.innerHTML = `<span class="text-xl">${feature.icon}</span> <span>${feature.title}</span>`;
+            
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.feature-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderFeature(feature);
+            });
+            
+            navContainer.appendChild(btn);
+        });
+
+        renderFeature(featuresData[0]);
+
+        const ctx = document.getElementById('rangeChart').getContext('2d');
+        
+        const labels = ['Alkalinity (dKH)', 'pH', 'Nitrate (ppm)', 'Phosphate (ppm)', 'Calcium (ppm)', 'Magnesium (ppm)'];
+        const minValues = [8.0, 8.0, 1, 0.02, 400, 1250];
+        const maxValues = [10.0, 8.4, 15, 0.1, 460, 1450];
+        
+        const normalizedMin = [80, 80, 6, 20, 86, 86]; 
+        const normalizedMax = [100, 84, 100, 100, 100, 100];
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Safe Range (Normalized for Display)',
+                        data: normalizedMax,
+                        backgroundColor: 'rgba(2, 132, 199, 0.2)',
+                        borderColor: 'rgba(2, 132, 199, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const idx = context.dataIndex;
+                                return `Safe Range: ${minValues[idx]} - ${maxValues[idx]}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: false, 
+                        beginAtZero: true
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { family: 'Inter', size: 13, weight: 500 },
+                            color: '#292524'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
