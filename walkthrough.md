@@ -27,6 +27,11 @@ We have successfully redesigned the **Dashboard** page of the Reef Command Cente
    * Adapts the **Dosing Assistant** to the active tank volume (33 gal vs 24 gal).
    * Automatically attaches active sheet tag to **Add New Log** submissions.
 
+5. **Installable Progressive Web App (PWA)**:
+   * Custom app icons generated from your artwork (`192x192`, `512x512`, `apple-touch-icon`).
+   * Web App Manifest (`manifest.json`) for full-screen standalone mobile and desktop app experience.
+   * Service Worker (`sw.js`) for instant app startup and offline asset caching.
+
 ---
 
 ## 📸 Verification Results

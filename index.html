@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Reef Command Center</title>
 
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#06b6d4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Reef Tracker" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+
     <!-- Grafana Faro Instrumentation -->
     <script src="https://unpkg.com/@grafana/faro-web-sdk@latest/dist/faro-web-sdk.iife.js"></script>
     <script>
@@ -1300,6 +1310,15 @@
                 return formattedLines.join('');
             }
         });
+
+        // --- 📱 PWA SERVICE WORKER REGISTRATION ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('ServiceWorker registered:', reg.scope))
+                    .catch(err => console.log('ServiceWorker registration failed:', err));
+            });
+        }
     </script>
 
     <!-- Floating Action Button -->
