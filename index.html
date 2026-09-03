@@ -141,12 +141,13 @@
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-        input { 
+        input, select, textarea { 
             width: 100%; padding: 12px; background-color: #1e293b !important; 
             border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; 
             color: white !important; font-size: 1em; transition: 0.2s; box-sizing: border-box;
+            font-family: inherit;
         }
-        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2); }
 
         button { 
             background: var(--primary); color: #0f172a; border: none; padding: 12px 20px; 
@@ -463,6 +464,86 @@
             transform: none;
             box-shadow: none;
         }
+
+        /* Notes Styling */
+        .note-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+        .note-card:hover {
+            border-color: rgba(6, 182, 212, 0.3);
+            background: rgba(15, 23, 42, 0.8);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .note-date-badge {
+            font-size: 0.8em;
+            font-weight: 700;
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .note-tank-badge {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: var(--primary);
+            background: rgba(6, 182, 212, 0.15);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(6, 182, 212, 0.25);
+        }
+        .note-cat-badge {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #c084fc;
+            background: rgba(168, 85, 247, 0.15);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(168, 85, 247, 0.25);
+        }
+        .note-delete-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-size: 1.3em;
+            line-height: 1;
+            width: auto;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .note-delete-btn:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            transform: none;
+            box-shadow: none;
+        }
+        .note-body {
+            color: #cbd5e1;
+            font-size: 0.95em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .note-footer {
+            margin-top: 10px;
+            font-size: 0.75em;
+            color: var(--text-muted);
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -480,6 +561,7 @@
         <button class="tab-btn" data-target="lighting">Lighting Editor</button>
         <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
+        <button class="tab-btn" data-target="notes">General Notes</button>
     </div>
 
     <!-- DASHBOARD TAB -->
@@ -680,6 +762,92 @@
         </div>
     </div>
 
+    <!-- GENERAL NOTES TAB -->
+    <div id="notes" class="tab-content">
+        <div class="dashboard-layout">
+            <!-- Left/Main: Notes History & Search Stream -->
+            <div class="dashboard-main">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">📋 Tank Notes & Log</h2>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span id="notesCountBadge" style="font-size: 0.8em; padding: 4px 12px; border-radius: 20px; background: rgba(6,182,212,0.15); color: var(--primary); font-weight: 600;">0 Notes</span>
+                            <button id="btnExportNotes" style="width: auto; padding: 7px 14px; font-size: 0.8em; background: rgba(255,255,255,0.08); color: var(--text-main); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;">📥 Export JSON</button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <input type="text" id="notesSearchInput" placeholder="🔍 Search notes..." style="flex: 2; min-width: 180px;">
+                        <select id="notesFilterTank" style="flex: 1; min-width: 140px;">
+                            <option value="ALL">All Tanks</option>
+                            <option value="WB35">33G Waterbox</option>
+                            <option value="IM24">24G Reef</option>
+                            <option value="GENERAL">General / All</option>
+                        </select>
+                        <select id="notesFilterCategory" style="flex: 1; min-width: 140px;">
+                            <option value="ALL">All Categories</option>
+                            <option value="Observation">🔍 Observation</option>
+                            <option value="Maintenance">🛠️ Maintenance</option>
+                            <option value="Livestock">🐟 Livestock</option>
+                            <option value="Water Change">🌊 Water Change</option>
+                            <option value="Equipment">⚙️ Equipment</option>
+                            <option value="Dosing">🧪 Dosing</option>
+                            <option value="Other">📌 Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Notes Stream -->
+                    <div id="notesContainer" style="display: flex; flex-direction: column; gap: 15px; max-height: 650px; overflow-y: auto; padding-right: 5px;">
+                        <div style="text-align: center; color: var(--text-muted); padding: 40px 20px;">No notes recorded yet. Add your first note using the form on the right!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right/Sidebar: Add New Note -->
+            <div class="dashboard-sidebar">
+                <div class="card highlight" style="border-top-color: var(--primary);">
+                    <h2 style="margin-bottom: 15px;">📝 Add New Note</h2>
+                    
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="newNoteDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tank</label>
+                        <select id="newNoteTank">
+                            <option value="WB35">33G Waterbox</option>
+                            <option value="IM24">24G Reef</option>
+                            <option value="GENERAL">General / Both Tanks</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="newNoteCategory">
+                            <option value="Observation">🔍 Observation</option>
+                            <option value="Maintenance">🛠️ Maintenance</option>
+                            <option value="Livestock">🐟 Livestock</option>
+                            <option value="Water Change">🌊 Water Change</option>
+                            <option value="Equipment">⚙️ Equipment</option>
+                            <option value="Dosing">🧪 Dosing</option>
+                            <option value="Other">📌 Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Note / Observations</label>
+                        <textarea id="newNoteText" rows="6" placeholder="Enter tank observations, water changes, coral growth, blenny dosing tweaks, equipment cleanings..." style="resize: vertical; min-height: 120px;"></textarea>
+                    </div>
+
+                    <button id="btnSaveNote">Save Note</button>
+                    <div id="noteSaveMsg" style="display: none; margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 0.85em; text-align: center; font-weight: 600;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- 🕵️ ENVIRONMENT DETECTION 🕵️ ---
         (function checkEnvironment() {
@@ -778,6 +946,8 @@
             document.querySelectorAll('.tank-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.tank === activeTankKey);
             });
+            const newNoteTank = document.getElementById('newNoteTank');
+            if (newNoteTank) newNoteTank.value = activeTankKey;
         }
 
         function initTankSelector() {
@@ -804,6 +974,7 @@
                 if(target) target.classList.add('active');
                 btn.classList.add('active');
                 if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) initLightChart();
+                if(btn.dataset.target === 'notes') renderNotesList();
             });
         });
 
@@ -1050,8 +1221,220 @@
                 </div>`;
         }
 
+        // --- 📝 GENERAL NOTES MODULE ---
+        const NOTES_STORAGE_KEY = 'reef_notes';
+
+        function getStoredNotes() {
+            try {
+                const stored = localStorage.getItem(NOTES_STORAGE_KEY);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                console.error('Failed to parse notes from localStorage:', e);
+                return [];
+            }
+        }
+
+        function saveStoredNotes(notes) {
+            try {
+                localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+            } catch (e) {
+                console.error('Failed to save notes to localStorage:', e);
+            }
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[1]}/${parts[2]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        function getTankDisplayName(key) {
+            if (key === 'WB35') return '33G Waterbox';
+            if (key === 'IM24') return '24G Reef';
+            if (key === 'GENERAL') return 'General / All';
+            return key || 'General';
+        }
+
+        function initNotesModule() {
+            const dateInput = document.getElementById('newNoteDate');
+            const tankSelect = document.getElementById('newNoteTank');
+            const catSelect = document.getElementById('newNoteCategory');
+            const textInput = document.getElementById('newNoteText');
+            const saveBtn = document.getElementById('btnSaveNote');
+            const saveMsg = document.getElementById('noteSaveMsg');
+            const searchInput = document.getElementById('notesSearchInput');
+            const filterTank = document.getElementById('notesFilterTank');
+            const filterCat = document.getElementById('notesFilterCategory');
+            const exportBtn = document.getElementById('btnExportNotes');
+
+            // Default to today's date
+            if (dateInput) {
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = String(today.getMonth() + 1).padStart(2, '0');
+                const d = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${y}-${m}-${d}`;
+            }
+
+            // Sync default new note tank to active tank
+            if (tankSelect && activeTankKey) {
+                tankSelect.value = activeTankKey;
+            }
+
+            // Render initial list
+            renderNotesList();
+
+            // Event: Save Note
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    const text = textInput ? textInput.value.trim() : '';
+                    if (!text) {
+                        showNoteMessage('Please enter note text before saving.', '#ef4444');
+                        return;
+                    }
+
+                    const newNote = {
+                        id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                        date: (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().slice(0, 10),
+                        tank: tankSelect ? tankSelect.value : 'GENERAL',
+                        category: catSelect ? catSelect.value : 'Observation',
+                        text: text,
+                        createdAt: Date.now()
+                    };
+
+                    const notes = getStoredNotes();
+                    notes.unshift(newNote); // Newest first
+                    saveStoredNotes(notes);
+
+                    if (textInput) textInput.value = '';
+                    showNoteMessage('✓ Note saved to LocalStorage!', '#34d399');
+                    renderNotesList();
+                });
+            }
+
+            // Inline feedback message helper
+            function showNoteMessage(msg, color) {
+                if (!saveMsg) return;
+                saveMsg.innerText = msg;
+                saveMsg.style.display = 'block';
+                saveMsg.style.color = color;
+                saveMsg.style.background = color === '#ef4444' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(52, 211, 153, 0.15)';
+                saveMsg.style.border = `1px solid ${color}40`;
+                setTimeout(() => {
+                    saveMsg.style.display = 'none';
+                }, 3000);
+            }
+
+            // Event: Search & Filters
+            if (searchInput) searchInput.addEventListener('input', renderNotesList);
+            if (filterTank) filterTank.addEventListener('change', renderNotesList);
+            if (filterCat) filterCat.addEventListener('change', renderNotesList);
+
+            // Event: Export Notes
+            if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                    const notes = getStoredNotes();
+                    if (!notes.length) {
+                        alert('No notes available to export.');
+                        return;
+                    }
+                    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(notes, null, 2));
+                    const dlAnchor = document.createElement('a');
+                    dlAnchor.setAttribute('href', dataStr);
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    dlAnchor.setAttribute('download', `reef-notes-backup-${todayStr}.json`);
+                    document.body.appendChild(dlAnchor);
+                    dlAnchor.click();
+                    dlAnchor.remove();
+                });
+            }
+        }
+
+        function renderNotesList() {
+            const container = document.getElementById('notesContainer');
+            const countBadge = document.getElementById('notesCountBadge');
+            const searchInput = document.getElementById('notesSearchInput');
+            const filterTank = document.getElementById('notesFilterTank');
+            const filterCat = document.getElementById('notesFilterCategory');
+
+            if (!container) return;
+
+            const allNotes = getStoredNotes();
+            const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const selectedTank = filterTank ? filterTank.value : 'ALL';
+            const selectedCat = filterCat ? filterCat.value : 'ALL';
+
+            // Filter notes
+            const filtered = allNotes.filter(note => {
+                const matchesSearch = !searchTerm || 
+                    (note.text && note.text.toLowerCase().includes(searchTerm)) || 
+                    (note.category && note.category.toLowerCase().includes(searchTerm));
+                const matchesTank = (selectedTank === 'ALL') || (note.tank === selectedTank);
+                const matchesCat = (selectedCat === 'ALL') || (note.category === selectedCat);
+                return matchesSearch && matchesTank && matchesCat;
+            });
+
+            // Sort by date descending, then created timestamp
+            filtered.sort((a, b) => {
+                if (a.date !== b.date) {
+                    return new Date(b.date) - new Date(a.date);
+                }
+                return (b.createdAt || 0) - (a.createdAt || 0);
+            });
+
+            if (countBadge) {
+                countBadge.innerText = `${filtered.length} Note${filtered.length === 1 ? '' : 's'}`;
+            }
+
+            if (!filtered.length) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px; background: rgba(15, 23, 42, 0.3); border-radius: 12px; border: 1px dashed rgba(255, 255, 255, 0.1);">
+                        <div style="font-size: 2em; margin-bottom: 10px;">📝</div>
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 5px;">No matching notes found</div>
+                        <div style="font-size: 0.85em;">Try adjusting your filters or use the form on the right to add a new note.</div>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(note => {
+                const formattedDate = formatDisplayDate(note.date);
+                const tankName = getTankDisplayName(note.tank);
+                const category = note.category || 'Observation';
+                const safeText = (note.text || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                return `
+                    <div class="note-card" data-id="${note.id}">
+                        <div class="note-header">
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <span class="note-date-badge">📅 ${formattedDate}</span>
+                                <span class="note-tank-badge">🐠 ${tankName}</span>
+                                <span class="note-cat-badge">${category}</span>
+                            </div>
+                            <button class="note-delete-btn" onclick="deleteNoteItem('${note.id}')" title="Delete this note">&times;</button>
+                        </div>
+                        <div class="note-body">${safeText}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.deleteNoteItem = function(id) {
+            if (!confirm('Are you sure you want to delete this note?')) return;
+            let notes = getStoredNotes();
+            notes = notes.filter(n => n.id !== id);
+            saveStoredNotes(notes);
+            renderNotesList();
+        };
+
         initTankSelector();
         loadData();
+        initNotesModule();
 
         // --- 🔮 GEMINI ASSISTANT MODAL LOGIC ---
         document.addEventListener('DOMContentLoaded', function initGeminiAssistant() {
