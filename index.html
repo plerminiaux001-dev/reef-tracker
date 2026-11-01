@@ -770,8 +770,10 @@
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
                         <h2 style="margin: 0;">📋 Tank Notes & Log</h2>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <span id="notesCountBadge" style="font-size: 0.8em; padding: 4px 12px; border-radius: 20px; background: rgba(6,182,212,0.15); color: var(--primary); font-weight: 600;">0 Notes</span>
+                            <span id="notesSyncStatus" style="font-size: 0.8em; color: var(--text-muted);"></span>
+                            <button id="btnSyncNotes" style="width: auto; padding: 7px 14px; font-size: 0.8em; background: rgba(6,182,212,0.15); color: var(--primary); border: 1px solid rgba(6,182,212,0.3); border-radius: 6px;">↻ Sync</button>
                             <button id="btnExportNotes" style="width: auto; padding: 7px 14px; font-size: 0.8em; background: rgba(255,255,255,0.08); color: var(--text-main); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;">📥 Export JSON</button>
                         </div>
                     </div>
@@ -974,7 +976,7 @@
                 if(target) target.classList.add('active');
                 btn.classList.add('active');
                 if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) initLightChart();
-                if(btn.dataset.target === 'notes') renderNotesList();
+                if(btn.dataset.target === 'notes') { renderNotesList(); fetchCloudNotes(); }
             });
         });
 
@@ -1221,7 +1223,7 @@
                 </div>`;
         }
 
-        // --- 📝 GENERAL NOTES MODULE ---
+        // --- 📝 GENERAL NOTES MODULE (CLOUD + LOCAL SYNC) ---
         const NOTES_STORAGE_KEY = 'reef_notes';
 
         function getStoredNotes() {
@@ -1244,11 +1246,12 @@
 
         function formatDisplayDate(dateStr) {
             if (!dateStr) return '';
-            const parts = dateStr.split('-');
+            const clean = dateStr.toString().split('T')[0];
+            const parts = clean.split('-');
             if (parts.length === 3) {
                 return `${parts[1]}/${parts[2]}/${parts[0]}`;
             }
-            return dateStr;
+            return clean;
         }
 
         function getTankDisplayName(key) {
@@ -1256,6 +1259,83 @@
             if (key === 'IM24') return '24G Reef';
             if (key === 'GENERAL') return 'General / All';
             return key || 'General';
+        }
+
+        async function fetchCloudNotes(force = false) {
+            const syncStatus = document.getElementById('notesSyncStatus');
+            const btnSync = document.getElementById('btnSyncNotes');
+            if (syncStatus) syncStatus.innerText = 'Syncing...';
+            if (btnSync) btnSync.disabled = true;
+
+            try {
+                const url = `${API_URL}?sheet=Notes`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (Array.isArray(data)) {
+                    const cloudNotes = data.map(item => ({
+                        id: item.id ? String(item.id) : ('note_' + (item.createdAt || Date.now())),
+                        date: item.date ? item.date.toString().split('T')[0] : '',
+                        tank: item.tank || 'GENERAL',
+                        category: item.category || 'Observation',
+                        text: item.text != null ? String(item.text) : '',
+                        createdAt: item.createdAt ? Number(item.createdAt) : Date.now()
+                    })).filter(n => n.text || n.date);
+
+                    saveStoredNotes(cloudNotes);
+                    renderNotesList();
+                    if (syncStatus) {
+                        syncStatus.innerText = '✓ Cloud Synced';
+                        setTimeout(() => { if (syncStatus && syncStatus.innerText === '✓ Cloud Synced') syncStatus.innerText = ''; }, 4000);
+                    }
+                } else if (data && data.error) {
+                    if (syncStatus) syncStatus.innerText = 'Local (Deploy backend to sync)';
+                }
+            } catch (err) {
+                console.warn('Could not fetch cloud notes:', err);
+                if (syncStatus) syncStatus.innerText = 'Offline (using local cache)';
+            } finally {
+                if (btnSync) btnSync.disabled = false;
+            }
+        }
+
+        async function submitCloudNote(note) {
+            const payload = {
+                sheetName: 'Notes',
+                action: 'add',
+                id: note.id,
+                date: note.date,
+                tank: note.tank,
+                category: note.category,
+                text: note.text,
+                createdAt: note.createdAt
+            };
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error('Failed to post note to Google Sheets:', err);
+            }
+        }
+
+        async function deleteCloudNote(id) {
+            const payload = {
+                sheetName: 'Notes',
+                action: 'delete',
+                id: id
+            };
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error('Failed to delete note from Google Sheets:', err);
+            }
         }
 
         function initNotesModule() {
@@ -1269,6 +1349,7 @@
             const filterTank = document.getElementById('notesFilterTank');
             const filterCat = document.getElementById('notesFilterCategory');
             const exportBtn = document.getElementById('btnExportNotes');
+            const syncBtn = document.getElementById('btnSyncNotes');
 
             // Default to today's date
             if (dateInput) {
@@ -1284,12 +1365,15 @@
                 tankSelect.value = activeTankKey;
             }
 
-            // Render initial list
+            // Render local cached notes immediately
             renderNotesList();
+
+            // Background fetch latest notes from Google Sheets
+            fetchCloudNotes();
 
             // Event: Save Note
             if (saveBtn) {
-                saveBtn.addEventListener('click', () => {
+                saveBtn.addEventListener('click', async () => {
                     const text = textInput ? textInput.value.trim() : '';
                     if (!text) {
                         showNoteMessage('Please enter note text before saving.', '#ef4444');
@@ -1305,13 +1389,18 @@
                         createdAt: Date.now()
                     };
 
+                    // Optimistic update in localStorage
                     const notes = getStoredNotes();
                     notes.unshift(newNote); // Newest first
                     saveStoredNotes(notes);
 
                     if (textInput) textInput.value = '';
-                    showNoteMessage('✓ Note saved to LocalStorage!', '#34d399');
+                    showNoteMessage('✓ Note saved & syncing...', '#34d399');
                     renderNotesList();
+
+                    // Background sync to Google Sheets
+                    await submitCloudNote(newNote);
+                    showNoteMessage('✓ Note saved to Google Sheets!', '#34d399');
                 });
             }
 
@@ -1325,13 +1414,18 @@
                 saveMsg.style.border = `1px solid ${color}40`;
                 setTimeout(() => {
                     saveMsg.style.display = 'none';
-                }, 3000);
+                }, 3500);
             }
 
             // Event: Search & Filters
             if (searchInput) searchInput.addEventListener('input', renderNotesList);
             if (filterTank) filterTank.addEventListener('change', renderNotesList);
             if (filterCat) filterCat.addEventListener('change', renderNotesList);
+
+            // Event: Manual Sync
+            if (syncBtn) {
+                syncBtn.addEventListener('click', () => fetchCloudNotes(true));
+            }
 
             // Event: Export Notes
             if (exportBtn) {
@@ -1424,12 +1518,15 @@
             }).join('');
         }
 
-        window.deleteNoteItem = function(id) {
+        window.deleteNoteItem = async function(id) {
             if (!confirm('Are you sure you want to delete this note?')) return;
             let notes = getStoredNotes();
             notes = notes.filter(n => n.id !== id);
             saveStoredNotes(notes);
             renderNotesList();
+
+            // Background delete in Google Sheets
+            await deleteCloudNote(id);
         };
 
         initTankSelector();
