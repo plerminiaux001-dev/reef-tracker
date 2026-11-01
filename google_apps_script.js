@@ -46,7 +46,7 @@ function doGet(e) {
       var row = {};
       var isEmpty = true;
       for (var j = 0; j < headers.length; j++) {
-        var headerKey = String(headers[j]).trim();
+        var headerKey = String(headers[j]).trim().toLowerCase();
         var val = data[i][j];
 
         // Format dates cleanly if Google Sheets converted them to Date objects

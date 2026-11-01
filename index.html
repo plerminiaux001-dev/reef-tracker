@@ -1064,10 +1064,25 @@
                     return;
                 }
 
-                logs = (Array.isArray(d) ? d : []).map(i => ({
-                    date: formatDate(i.date), alk: toNum(i.alk), ca: toNum(i.ca), mg: toNum(i.mg),
-                    no3: toNum(i.no3), po4: toNum(i.po4), ph: toNum(i.ph)
-                })).filter(i => i.date !== '-').sort((a,b) => new Date(a.date) - new Date(b.date));
+                logs = (Array.isArray(d) ? d : []).map(i => {
+                    const item = {};
+                    if (i && typeof i === 'object') {
+                        for (const k in i) {
+                            if (Object.prototype.hasOwnProperty.call(i, k)) {
+                                item[k.toLowerCase()] = i[k];
+                            }
+                        }
+                    }
+                    return {
+                        date: formatDate(item.date),
+                        alk: toNum(item.alk),
+                        ca: toNum(item.ca),
+                        mg: toNum(item.mg),
+                        no3: toNum(item.no3),
+                        po4: toNum(item.po4),
+                        ph: toNum(item.ph)
+                    };
+                }).filter(i => i.date !== '-').sort((a,b) => new Date(a.date) - new Date(b.date));
                 renderAll();
             } catch(e) { 
                 statusDisplay.innerHTML = `<div style="grid-column: 1 / -1; padding: 20px; color:#ef4444; text-align:center;">Error Loading Data for ${current.displayName}</div>`; 
