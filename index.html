@@ -1282,6 +1282,18 @@
                         createdAt: item.createdAt ? Number(item.createdAt) : Date.now()
                     })).filter(n => n.text || n.date);
 
+                    // Merge any local notes that have not yet reached the cloud
+                    const cloudIdSet = new Set(cloudNotes.map(n => String(n.id)));
+                    const localNotes = getStoredNotes();
+                    const unsyncedNotes = localNotes.filter(n => n.id && !cloudIdSet.has(String(n.id)));
+
+                    if (unsyncedNotes.length > 0) {
+                        for (const note of unsyncedNotes) {
+                            await submitCloudNote(note);
+                            cloudNotes.push(note);
+                        }
+                    }
+
                     saveStoredNotes(cloudNotes);
                     renderNotesList();
                     if (syncStatus) {
