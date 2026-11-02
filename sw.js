@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reeftracker-v4';
+const CACHE_NAME = 'reeftracker-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',
