@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reeftracker-v5';
+const CACHE_NAME = 'reeftracker-v6';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -40,7 +40,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   // 1. Google Apps Script & External APIs -> Network First / Network Only
-  if (url.hostname.includes('script.google.com') || url.hostname.includes('generativelanguage.googleapis.com') || url.hostname.includes('grafana.net')) {
+  if (url.hostname.includes('script.google.com') || url.hostname.includes('grafana.net')) {
     event.respondWith(
       fetch(event.request).catch(() => {
         return new Response(JSON.stringify({ error: 'Offline - Unable to connect to server' }), {
