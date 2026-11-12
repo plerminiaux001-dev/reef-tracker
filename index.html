@@ -27,8 +27,6 @@
     <!-- Dependencies -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         /* --- 🎨 VEXLORA TAILWIND THEME SYSTEM (DARK & LIGHT) --- */
@@ -424,7 +422,6 @@
 
     <div class="tab-nav">
         <button class="tab-btn active" data-target="dashboard">Dashboard</button>
-        <button class="tab-btn" data-target="lighting">Lighting Editor</button>
         <button class="tab-btn" data-target="instructions">Dosing Instructions</button>
         <button class="tab-btn" data-target="mixing">Salt Mixer</button>
         <button class="tab-btn" data-target="notes">General Notes</button>
@@ -510,39 +507,6 @@
                     <div class="form-group"><label>pH</label><input type="number" step="0.1" id="ph" min="7" max="9"></div>
                     <button id="saveEntryBtn">Save Entry</button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- LIGHTING TAB -->
-    <div id="lighting" class="tab-content">
-        <div class="card highlight" style="border-top-color: #fcd34d;">
-            <h2>💡 Light Profile Generator</h2>
-            <p style="opacity: 0.7; margin-bottom: 20px;">
-                <strong>Click any point</strong> on the chart to edit precise values below.
-            </p>
-            
-            <div class="chart-container" style="height: 350px; cursor: crosshair;">
-                <canvas id="lightChart"></canvas>
-            </div>
-
-            <div class="card" style="background: rgba(0,0,0,0.2); margin-top: 20px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h3>🛠️ Manual Editor</h3>
-                    <select id="editorHour" style="width:auto; padding:5px 15px; background:#0f172a; color:white; border:1px solid #334155; border-radius:6px;">
-                    </select>
-                </div>
-                <div class="grid-small" id="manualInputs"></div>
-            </div>
-
-            <div class="grid-small" style="margin-top: 25px;">
-                <button id="btnResetLights" style="background:#475569;">Reset to Flat</button>
-                <button id="btnExportLights" style="background:#fcd34d; color:#0f172a;">Generate QR Code</button>
-            </div>
-
-            <div id="qrArea" style="display:none; text-align:center; margin-top:20px; padding:20px; background:white; border-radius:12px;">
-                <div id="qrcode" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
-                <div style="color:#0f172a; font-weight:bold;">Scan with Noopsyche App</div>
             </div>
         </div>
     </div>
@@ -762,7 +726,6 @@
 
         let logs = [];
         let chartInstance = null;
-        let lightChartInstance = null;
 
         // Elements
         const statusDisplay = document.getElementById('statusDisplay');
@@ -785,11 +748,6 @@
         const mixResult = document.getElementById('mixResult');
         const resGrams = document.getElementById('resGrams');
         const resCups = document.getElementById('resCups');
-
-        // Light Elements
-        const lightCtx = document.getElementById('lightChart');
-        const editorHour = document.getElementById('editorHour');
-        const manualInputs = document.getElementById('manualInputs');
 
         // Helpers
         const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
@@ -841,7 +799,6 @@
                 const target = document.getElementById(btn.dataset.target);
                 if(target) target.classList.add('active');
                 btn.classList.add('active');
-                if(btn.dataset.target === 'lighting' && !lightChartInstance && lightCtx) initLightChart();
                 if(btn.dataset.target === 'notes') { renderNotesList(); fetchCloudNotes(); }
             });
         });
@@ -895,23 +852,6 @@
                 resGrams.innerText = Math.round(totalGrams);
                 resCups.innerText = (totalGrams / 280).toFixed(2);
                 mixResult.style.display = 'block';
-            });
-        }
-
-        // Lighting Logic
-        function initLightChart() {
-            if(lightChartInstance) lightChartInstance.destroy();
-            const hours = Array.from({length: 24}, (_, i) => i + ":00");
-            lightChartInstance = new Chart(lightCtx, {
-                type: 'line',
-                data: {
-                    labels: hours,
-                    datasets: [
-                        { label: 'White', data: new Array(24).fill(0), borderColor: '#fcd34d' },
-                        { label: 'Blue', data: new Array(24).fill(0), borderColor: '#0096ff' }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
             });
         }
 
@@ -1467,14 +1407,6 @@
                     if (scale.ticks) scale.ticks.color = textColor;
                 });
                 chartInstance.update();
-            }
-
-            if (lightChartInstance && lightChartInstance.options && lightChartInstance.options.scales) {
-                Object.values(lightChartInstance.options.scales).forEach(scale => {
-                    if (scale.grid) scale.grid.color = gridColor;
-                    if (scale.ticks) scale.ticks.color = textColor;
-                });
-                lightChartInstance.update();
             }
         }
 
